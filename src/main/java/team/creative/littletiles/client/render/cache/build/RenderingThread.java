@@ -27,6 +27,7 @@ import team.creative.creativecore.common.util.type.list.Tuple;
 import team.creative.creativecore.common.util.type.map.ChunkLayerMap;
 import team.creative.creativecore.common.util.type.map.ChunkLayerMapList;
 import team.creative.littletiles.LittleTiles;
+import team.creative.littletiles.client.mod.sable.SableClientBridge;
 import team.creative.littletiles.client.render.cache.buffer.BufferCache;
 import team.creative.littletiles.client.render.cache.pipeline.LittleRenderPipeline;
 import team.creative.littletiles.client.render.cache.pipeline.LittleRenderPipelineType;
@@ -278,6 +279,8 @@ public class RenderingThread extends Thread {
     
     public void unqueue(RenderingBlockContext data) {
         RenderChunkExtender chunk = QUEUE.unqeue(data);
+        if (data.getSableContext() != null && SableClientBridge.tryMarkDirty(data.getSableContext(), data.be.getLevel(), data.be.getBlockPos()))
+            return;
         if (chunk != null) {
             LittleTilesProfilerOverlay.chunkUpdates++;
             chunk.markReadyForUpdate(false);

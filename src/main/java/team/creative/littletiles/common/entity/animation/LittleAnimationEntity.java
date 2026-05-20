@@ -242,6 +242,7 @@ public class LittleAnimationEntity extends LittleEntity<LittleAnimationEntityPhy
         physic.load(extraData.getCompound("physic"));
         this.structure = new StructureConnection((Level) subLevel, extraData.getCompound("st"));
         physic.updateBoundingBox();
+        origin.tick();
     }
     
     @Override

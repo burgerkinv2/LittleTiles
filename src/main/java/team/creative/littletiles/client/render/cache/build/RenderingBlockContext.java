@@ -14,6 +14,7 @@ import team.creative.littletiles.client.render.cache.build.RenderingThread.Rende
 import team.creative.littletiles.client.render.cache.pipeline.LittleRenderPipelineType;
 import team.creative.littletiles.client.render.mc.RenderChunkExtender;
 import team.creative.littletiles.common.block.entity.BETiles;
+import team.creative.littletiles.common.mod.sable.SableBridge.Context;
 
 public class RenderingBlockContext {
     
@@ -21,18 +22,20 @@ public class RenderingBlockContext {
     public final BlockState state;
     private final long pos;
     private final RenderingLevelHandler handler;
+    private final Context sableContext;
     public int index;
     public boolean proccessed = false;
     
     public HashMap<Facing, BETiles> neighboursBEs;
     
-    public RenderingBlockContext(BETiles be, boolean hasPos, long pos, RenderingLevelHandler handler) {
+    public RenderingBlockContext(BETiles be, boolean hasPos, long pos, RenderingLevelHandler handler, Context sableContext) {
         this.be = be;
         this.state = be.getBlockState();
         if (!hasPos)
             pos = handler.sectionPos(be);
         this.pos = pos;
         this.handler = handler;
+        this.sableContext = sableContext;
     }
     
     public void checkRemoved() throws RemovedBlockEntityException {
@@ -76,6 +79,10 @@ public class RenderingBlockContext {
     
     public RenderChunkExtender getRenderChunk() {
         return handler.getRenderChunk(getLevel(), pos);
+    }
+
+    public Context getSableContext() {
+        return sableContext;
     }
     
     public void prepareModelOffset(MutableBlockPos modelOffset, BlockPos pos) {

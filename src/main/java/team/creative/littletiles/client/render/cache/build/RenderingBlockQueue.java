@@ -9,6 +9,7 @@ import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import net.minecraft.world.level.Level;
 import team.creative.littletiles.client.render.mc.RenderChunkExtender;
 import team.creative.littletiles.common.block.entity.BETiles;
+import team.creative.littletiles.common.mod.sable.SableBridge;
 
 public class RenderingBlockQueue {
     
@@ -22,8 +23,11 @@ public class RenderingBlockQueue {
     public synchronized void queue(BETiles tiles, boolean hasPos, long pos) {
         var level = tiles.getLevel();
         var handler = RenderingLevelHandler.of(level);
+        var sableContext = SableBridge.findContext(level, tiles.getBlockPos());
+        if (sableContext != null && handler != RenderingLevelHandler.VANILLA)
+            handler = RenderingLevelHandler.VANILLA;
         
-        RenderingBlockContext context = new RenderingBlockContext(tiles, hasPos, pos, handler);
+        RenderingBlockContext context = new RenderingBlockContext(tiles, hasPos, pos, handler, sableContext);
         var sections = levels.computeIfAbsent(level, x -> new Long2IntOpenHashMap());
         pos = context.queuedSection(); // get rid of different render chunks if it is just one in cause of an animation
         int count = sections.getOrDefault(pos, 0);

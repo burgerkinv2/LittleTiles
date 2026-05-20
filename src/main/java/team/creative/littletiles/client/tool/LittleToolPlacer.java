@@ -37,6 +37,7 @@ import team.creative.littletiles.LittleTilesRegistry;
 import team.creative.littletiles.api.common.tool.ILittlePlacer;
 import team.creative.littletiles.client.LittleTilesClient;
 import team.creative.littletiles.client.action.LittleActionHandlerClient;
+import team.creative.littletiles.client.mod.sable.SableClientBridge;
 import team.creative.littletiles.client.render.mc.MeshDataExtender;
 import team.creative.littletiles.client.render.overlay.PreviewRenderer;
 import team.creative.littletiles.common.action.LittleAction;
@@ -49,6 +50,7 @@ import team.creative.littletiles.common.math.box.LittleBox;
 import team.creative.littletiles.common.math.box.LittleBoxGrid;
 import team.creative.littletiles.common.math.vec.LittleVec;
 import team.creative.littletiles.common.math.vec.LittleVecGrid;
+import team.creative.littletiles.common.mod.sable.SableBridge;
 import team.creative.littletiles.common.packet.item.PlacerMatrixPacket;
 import team.creative.littletiles.common.placement.PlacementHelper;
 import team.creative.littletiles.common.placement.PlacementPosition;
@@ -318,16 +320,24 @@ public class LittleToolPlacer extends LittleTool {
         if (mesh == null || placedPosition == null)
             return;
         
+        if (marked != null)
+            renderer.renderPosition(pose, cam, marked, placer.getPositionGrid(renderer.player(), stack), true);
+
         pose.pushPose();
         pose.translate(-cam.x, -cam.y, -cam.z);
-        
-        if (marked != null)
-            renderer.renderLineBox(pose, marked.getBB(placer.getPositionGrid(renderer.player(), stack)), true);
         
         var matrix = RenderSystem.getModelViewStack();
         matrix.pushMatrix();
         renderer.setupPreviewRenderer(lines);
-        matrix.translate((float) (placedPosition.getPosX() - cam.x), (float) (placedPosition.getPosY() - cam.y), (float) (placedPosition.getPosZ() - cam.z));
+        double placedX = placedPosition.getPosX();
+        double placedY = placedPosition.getPosY();
+        double placedZ = placedPosition.getPosZ();
+        BlockPos placedBp = BlockPos.containing(placedX, placedY, placedZ);
+        var context = SableBridge.findContext(renderer.level(), placedBp);
+        if (context != null)
+            SableClientBridge.applyPoseToModelViewForPosition(context, placedX, placedY, placedZ);
+        else
+            matrix.translate((float) (placedX - cam.x), (float) (placedY - cam.y), (float) (placedZ - cam.z));
         RenderSystem.applyModelViewMatrix();
         BufferUploader.drawWithShader(mesh);
         matrix.popMatrix();

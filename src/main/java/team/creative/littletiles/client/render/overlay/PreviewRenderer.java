@@ -37,6 +37,7 @@ import team.creative.creativecore.common.util.mc.PlayerUtils;
 import team.creative.creativecore.common.util.mc.TickUtils;
 import team.creative.littletiles.LittleTiles;
 import team.creative.littletiles.client.action.LittleActionHandlerClient;
+import team.creative.littletiles.client.mod.sable.SableClientBridge;
 import team.creative.littletiles.client.render.mc.MeshDataExtender;
 import team.creative.littletiles.client.render.tile.LittleRenderBox;
 import team.creative.littletiles.client.tool.shaper.ShapePosition;
@@ -45,6 +46,8 @@ import team.creative.littletiles.common.grid.LittleGrid;
 import team.creative.littletiles.common.math.box.LittleBox;
 import team.creative.littletiles.common.math.box.LittleBoxAbsolute;
 import team.creative.littletiles.common.math.box.collection.LittleBoxes;
+import team.creative.littletiles.common.math.vec.LittleVecAbsolute;
+import team.creative.littletiles.common.mod.sable.SableBridge;
 
 public class PreviewRenderer {
     
@@ -88,6 +91,9 @@ public class PreviewRenderer {
     }
     
     public LittleTileContext selectFocused(BlockHitResult result) {
+        LittleTileContext sableContext = SableClientBridge.selectFocusedWithRenderPose(level(), result.getBlockPos(), player(), partialTickTime());
+        if (sableContext != null)
+            return sableContext;
         return LittleTileContext.selectFocused(level(), result.getBlockPos(), player());
     }
     
@@ -203,7 +209,11 @@ public class PreviewRenderer {
     public void renderBoxes(Vec3 cam, BlockPos pos, boolean lines, MeshData data, @Nullable Runnable adjustGL) {
         var matrix = RenderSystem.getModelViewStack();
         matrix.pushMatrix();
-        matrix.translate((float) (pos.getX() - cam.x), (float) (pos.getY() - cam.y), (float) (pos.getZ() - cam.z));
+        var context = SableBridge.findContext(level(), pos);
+        if (context != null)
+            SableClientBridge.applyPoseToModelViewForBlockPos(context, pos);
+        else
+            matrix.translate((float) (pos.getX() - cam.x), (float) (pos.getY() - cam.y), (float) (pos.getZ() - cam.z));
         
         RenderSystem.applyModelViewMatrix();
         setupPreviewRenderer(lines);
@@ -231,29 +241,47 @@ public class PreviewRenderer {
     }
     
     public void renderPositions(PoseStack pose, Vec3 cam, List<ShapePosition> positions, @Nullable Int2BooleanFunction marked) {
-        pose.pushPose();
-        pose.translate(-cam.x, -cam.y, -cam.z);
         for (int i = 0; i < positions.size(); i++)
-            renderLineBox(pose, positions.get(i).getBB(), marked != null && marked.get(i));
-        pose.popPose();
+            renderPosition(pose, cam, positions.get(i), positions.get(i).getGrid(), marked != null && marked.get(i));
     }
     
     public void renderBoxes(PoseStack pose, Vec3 cam, List<LittleBoxAbsolute> boxes, @Nullable Int2BooleanFunction marked) {
-        pose.pushPose();
-        pose.translate(-cam.x, -cam.y, -cam.z);
         for (int i = 0; i < boxes.size(); i++)
-            renderLineBox(pose, boxes.get(i).toABB(), marked != null && marked.get(i));
-        pose.popPose();
+            renderAbsoluteBox(pose, cam, boxes.get(i), marked != null && marked.get(i));
     }
     
     public void renderPositions(PoseStack pose, Vec3 cam, List<ShapePosition> positions, LittleGrid grid, @Nullable Int2BooleanFunction marked) {
-        pose.pushPose();
-        pose.translate(-cam.x, -cam.y, -cam.z);
         for (int i = 0; i < positions.size(); i++)
-            renderLineBox(pose, positions.get(i).getBB(grid), marked != null && marked.get(i));
+            renderPosition(pose, cam, positions.get(i), grid, marked != null && marked.get(i));
+    }
+
+    public void renderPosition(PoseStack pose, Vec3 cam, LittleVecAbsolute position, LittleGrid grid, boolean selected) {
+        BlockPos pos = position.getPos();
+        ABB worldBox = position.getBB(grid);
+        renderLineBox(pose, cam, pos, toBlockLocal(worldBox, pos), worldBox, selected);
+    }
+
+    public void renderAbsoluteBox(PoseStack pose, Vec3 cam, LittleBoxAbsolute box, boolean selected) {
+        renderLineBox(pose, cam, box.pos, box.box.getABB(box.grid), box.toABB(), selected);
+    }
+
+    private void renderLineBox(PoseStack pose, Vec3 cam, BlockPos pos, ABB localBox, ABB worldBox, boolean selected) {
+        pose.pushPose();
+        var context = SableBridge.findContext(level(), pos);
+        if (context != null) {
+            SableClientBridge.applyPoseToPoseStackForBlockPos(context, pos, pose, cam.x, cam.y, cam.z);
+            renderLineBox(pose, localBox, selected);
+        } else {
+            pose.translate(-cam.x, -cam.y, -cam.z);
+            renderLineBox(pose, worldBox, selected);
+        }
         pose.popPose();
     }
     
+    private static ABB toBlockLocal(ABB box, BlockPos pos) {
+        return box.moveCopy(-pos.getX(), -pos.getY(), -pos.getZ());
+    }
+
     public void renderSeethroughLines(Vec3 cam, boolean lines, BlockPos pos, MeshData data, int color) {
         renderBoxes(cam, pos, lines, data, () -> {
             RenderSystem.enableDepthTest();

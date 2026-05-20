@@ -60,6 +60,7 @@ import team.creative.littletiles.common.math.face.LittleFace;
 import team.creative.littletiles.common.math.face.LittleServerFace;
 import team.creative.littletiles.common.math.transformation.LittleBlockTransformer;
 import team.creative.littletiles.common.math.vec.LittleVec;
+import team.creative.littletiles.common.mod.sable.SableBridge;
 import team.creative.littletiles.common.structure.LittleStructure;
 import team.creative.littletiles.common.structure.attribute.LittleStructureAttribute;
 import team.creative.littletiles.common.structure.exception.CorruptedConnectionException;
@@ -531,6 +532,15 @@ public class BETiles extends BlockEntityCreative implements IGridBased, ILittleB
             pos = or.getOrigin().transformPointToFakeWorld(pos);
             look = or.getOrigin().transformPointToFakeWorld(look);
         }
+        var sableContext = SableBridge.findContext(level, getBlockPos());
+        if (sableContext != null) {
+            Vec3 localPos = SableBridge.transformPointToSubLevelLocal(sableContext, pos);
+            Vec3 localLook = SableBridge.transformPointToSubLevelLocal(sableContext, look);
+            if (localPos != null && localLook != null) {
+                pos = localPos;
+                look = localLook;
+            }
+        }
         
         return rayTrace(pos, look);
     }
@@ -564,6 +574,15 @@ public class BETiles extends BlockEntityCreative implements IGridBased, ILittleB
         if (level != player.level() && level instanceof IOrientatedLevel or) {
             pos = or.getOrigin().transformPointToFakeWorld(pos);
             look = or.getOrigin().transformPointToFakeWorld(look);
+        }
+        var sableContext = SableBridge.findContext(level, getBlockPos());
+        if (sableContext != null) {
+            Vec3 localPos = SableBridge.transformPointToSubLevelLocal(sableContext, pos);
+            Vec3 localLook = SableBridge.transformPointToSubLevelLocal(sableContext, look);
+            if (localPos != null && localLook != null) {
+                pos = localPos;
+                look = localLook;
+            }
         }
         
         return getFocusedTile(pos, look);
