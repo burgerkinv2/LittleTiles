@@ -236,6 +236,7 @@ public abstract class LittleEntity<T extends LittleEntityPhysic> extends Entity 
                 EntityType.create(list.getCompound(i), (Level) subLevel).ifPresent(entitiesToAdd::add);
         } else
             entitiesToAdd = null;
+        origin.tick();
     }
     
     public abstract void loadEntity(CompoundTag nbt);

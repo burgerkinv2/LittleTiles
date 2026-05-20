@@ -5,6 +5,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.BlockHitResult;
 import team.creative.creativecore.common.util.math.base.Facing;
 import team.creative.creativecore.common.util.mc.TickUtils;
+import team.creative.littletiles.client.mod.sable.SableClientBridge;
 import team.creative.littletiles.common.block.little.tile.LittleTileContext;
 import team.creative.littletiles.common.grid.LittleGrid;
 import team.creative.littletiles.common.math.vec.LittleVec;
@@ -18,7 +19,9 @@ public class ShapePosition extends PlacementPosition {
     public ShapePosition(Player player, PlacementPosition position, BlockHitResult result, boolean whenClicked, boolean inside) {
         super(position);
         this.ray = result;
-        this.result = LittleTileContext.selectFocused(player.level(), result.getBlockPos(), player, whenClicked ? 1 : TickUtils.getFrameTime(player.level()));
+        float partialTick = whenClicked ? 1 : TickUtils.getFrameTime(player.level());
+        LittleTileContext focused = SableClientBridge.selectFocusedWithRenderPose(player.level(), result.getBlockPos(), player, partialTick);
+        this.result = focused != null ? focused : LittleTileContext.selectFocused(player.level(), result.getBlockPos(), player, partialTick);
         LittleGrid grid = getGrid();
         if (position.facing != null)
             if (inside) {

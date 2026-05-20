@@ -20,7 +20,6 @@ import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexFormat;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Direction.Axis;
@@ -32,7 +31,6 @@ import net.neoforged.neoforge.common.NeoForge;
 import team.creative.creativecore.common.config.api.CreativeConfig;
 import team.creative.creativecore.common.gui.integration.ScreenEventListener;
 import team.creative.creativecore.common.util.math.base.Facing;
-import team.creative.creativecore.common.util.math.box.ABB;
 import team.creative.creativecore.common.util.math.vec.Vec3d;
 import team.creative.creativecore.common.util.mc.ColorUtils;
 import team.creative.creativecore.common.util.mc.PlayerUtils;
@@ -163,13 +161,10 @@ public class BuildingModeMirrors extends BuildingModeFeature implements Building
             return false;
         
         var grid = positionGrid();
-        pose.pushPose();
-        pose.translate(-cam.x, -cam.y, -cam.z);
         if (first != null)
-            renderer.renderLineBox(pose, first.getBB(grid), false);
+            renderer.renderPosition(pose, cam, first, grid, false);
         if (last != null)
-            renderer.renderLineBox(pose, last.getBB(grid), false);
-        pose.popPose();
+            renderer.renderPosition(pose, cam, last, grid, false);
         
         if (first != null && last != null) {
             first.sameGrid(last, () -> {
@@ -195,12 +190,8 @@ public class BuildingModeMirrors extends BuildingModeFeature implements Building
         }
         
         if (mirrorOrigins != null && result != null) {
-            if (marked != -1 && marked < mirrorOrigins.size()) {
-                pose.pushPose();
-                pose.translate(-cam.x, -cam.y, -cam.z);
-                mirrorOrigins.get(marked).render(pose, true);
-                pose.popPose();
-            }
+            if (marked != -1 && marked < mirrorOrigins.size())
+                mirrorOrigins.get(marked).render(renderer, pose, cam, true);
             
             renderer.renderSeethroughLines(cam, lines, result.pos(), result.data(), color);
             
@@ -420,36 +411,8 @@ public class BuildingModeMirrors extends BuildingModeFeature implements Building
                 renderMirror(pose, Axis.Z, center, zColor);
         }
         
-        public void render(PoseStack pose, boolean selected) {
-            Tesselator tesselator = Tesselator.getInstance();
-            BufferBuilder bufferbuilder = tesselator.begin(VertexFormat.Mode.LINES, DefaultVertexFormat.POSITION_COLOR_NORMAL);
-            
-            RenderSystem.depthMask(true);
-            RenderSystem.disableCull();
-            RenderSystem.enableBlend();
-            RenderSystem.defaultBlendFunc();
-            RenderSystem.enableDepthTest();
-            
-            ABB box = this.box.toABB();
-            box.inflate(0.002);
-            
-            RenderSystem.setShader(GameRenderer::getRendertypeLinesShader);
-            
-            RenderSystem.lineWidth(3.0F);
-            box.renderLines(pose, bufferbuilder, 0, 0, 0, 1F);
-            
-            BufferUploader.drawWithShader(bufferbuilder.buildOrThrow());
-            
-            RenderSystem.disableDepthTest();
-            if (selected) {
-                bufferbuilder = tesselator.begin(VertexFormat.Mode.LINES, DefaultVertexFormat.POSITION_COLOR_NORMAL);
-                RenderSystem.lineWidth(6.0F);
-                box.renderLines(pose, bufferbuilder, 1F, 0.3F, 0.0F, 1F);
-                BufferUploader.drawWithShader(bufferbuilder.buildOrThrow());
-            }
-            
-            RenderSystem.enableDepthTest();
-            RenderSystem.enableCull();
+        public void render(PreviewRenderer renderer, PoseStack pose, Vec3 cam, boolean selected) {
+            renderer.renderAbsoluteBox(pose, cam, box, selected);
         }
         
         public void toggle(Axis axis) {

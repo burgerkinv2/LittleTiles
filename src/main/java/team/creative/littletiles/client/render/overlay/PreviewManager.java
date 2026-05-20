@@ -48,6 +48,7 @@ import team.creative.littletiles.common.action.exception.LittleActionException;
 import team.creative.littletiles.common.block.mc.BlockTile;
 import team.creative.littletiles.common.gui.tool.GuiConfigure;
 import team.creative.littletiles.common.math.vec.LittleHitResult;
+import team.creative.littletiles.common.mod.sable.SableBridge;
 
 public class PreviewManager implements LevelAwareHandler {
     
@@ -193,10 +194,13 @@ public class PreviewManager implements LevelAwareHandler {
         PoseStack pose = event.getPoseStack();
         if (tool != null)
             tool.render(renderer, pose, cam, true);
+
+        BlockPos targetPos = event.getTarget().getBlockPos();
+        if (SableBridge.findContext(level, targetPos) != null)
+            return;
         
-        if (!event.isCanceled() && level.getBlockState(event.getTarget().getBlockPos()).getBlock() instanceof BlockTile && level.getWorldBorder().isWithinBounds(event.getTarget()
-                .getBlockPos())) {
-            BlockPos pos = event.getTarget().getBlockPos();
+        if (!event.isCanceled() && level.getBlockState(targetPos).getBlock() instanceof BlockTile && level.getWorldBorder().isWithinBounds(targetPos)) {
+            BlockPos pos = targetPos;
             BlockState state = level.getBlockState(pos);
             VoxelShape shape;
             if (state.getBlock() instanceof BlockTile block)

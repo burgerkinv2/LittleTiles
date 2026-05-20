@@ -16,6 +16,7 @@ import net.minecraft.client.renderer.block.model.BakedQuad;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.BlockPos.MutableBlockPos;
+import net.minecraft.world.level.BlockAndTintGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.api.distmarker.Dist;
@@ -29,11 +30,15 @@ import team.creative.creativecore.common.util.type.map.ChunkLayerMap;
 import team.creative.creativecore.common.util.type.map.ChunkLayerMapList;
 import team.creative.creativecore.mixin.ForgeModelBlockRendererAccessor;
 import team.creative.littletiles.LittleTiles;
+import team.creative.littletiles.client.mod.sable.SableClientBridge;
+import team.creative.littletiles.client.mod.sable.ShadelessBlockAndTintGetter;
+import team.creative.littletiles.client.mod.sable.SubLevelNormalConsumer;
 import team.creative.littletiles.client.render.cache.buffer.BufferCache;
 import team.creative.littletiles.client.render.cache.buffer.BufferHolder;
 import team.creative.littletiles.client.render.cache.build.RenderingBlockContext;
 import team.creative.littletiles.client.render.tile.LittleRenderBox;
 import team.creative.littletiles.common.level.little.LittleSubLevel;
+import team.creative.littletiles.common.mod.sable.SableBridge;
 import team.creative.littletiles.mixin.client.render.BufferBuilderAccessor;
 
 @OnlyIn(Dist.CLIENT)
@@ -67,7 +72,9 @@ public class LittleRenderPipelineForge extends LittleRenderPipeline {
         boolean smooth = Minecraft.useAmbientOcclusion() && data.state.getLightEmission(data.be.getLevel(), pos) == 0;
         QuadLighter lighter = smooth ? renderer.getSmoothLighter().get() : renderer.getFlatLighter().get();
         
-        lighter.setup(renderLevel, pos, data.state);
+        boolean inSableSubLevel = SableBridge.isInSableSubLevel(data.be.getLevel(), pos) && SableClientBridge.isDynamicDirectionalShadingEnabled();
+        BlockAndTintGetter lighterLevel = inSableSubLevel ? new ShadelessBlockAndTintGetter(renderLevel) : renderLevel;
+        lighter.setup(lighterLevel, pos, data.state);
         
         int overlay = OverlayTexture.NO_OVERLAY;
         
@@ -95,6 +102,7 @@ public class LittleRenderPipelineForge extends LittleRenderPipeline {
                     
                     ((CreativeQuadLighter) lighter).setState(state);
                     ((CreativeQuadLighter) lighter).setCustomTint(cube.color);
+                    SubLevelNormalConsumer sableWrapper = inSableSubLevel ? new SubLevelNormalConsumer(builder) : null;
                     
                     for (int h = 0; h < Facing.VALUES.length; h++) {
                         Facing facing = Facing.VALUES[h];
@@ -108,10 +116,10 @@ public class LittleRenderPipelineForge extends LittleRenderPipeline {
                         }
                         if (quads != null && !quads.isEmpty())
                             if (quads instanceof SingletonList<BakedQuad> single)
-                                lighter.process(builder, pose.last(), single.get(0), overlay);
+                                lighter.process(sableWrapper != null ? sableWrapper : builder, pose.last(), single.get(0), overlay);
                             else
                                 for (BakedQuad quad : quads)
-                                    lighter.process(builder, pose.last(), quad, overlay);
+                                    lighter.process(sableWrapper != null ? sableWrapper : builder, pose.last(), quad, overlay);
                     }
                     
                     bakedQuadWrapper.setElement(null);

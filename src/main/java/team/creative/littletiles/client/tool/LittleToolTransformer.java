@@ -20,10 +20,12 @@ import net.minecraft.world.phys.Vec3;
 import team.creative.creativecore.common.util.math.box.BoxCorner;
 import team.creative.creativecore.common.util.mc.ColorUtils;
 import team.creative.creativecore.common.util.mc.PlayerUtils;
+import team.creative.creativecore.common.util.mc.TickUtils;
 import team.creative.littletiles.LittleTiles;
 import team.creative.littletiles.api.common.tool.ILittleTransformer;
 import team.creative.littletiles.client.LittleTilesClient;
 import team.creative.littletiles.client.action.LittleActionHandlerClient;
+import team.creative.littletiles.client.mod.sable.SableClientBridge;
 import team.creative.littletiles.client.render.overlay.PreviewRenderer;
 import team.creative.littletiles.client.tool.shaper.ShapePosition;
 import team.creative.littletiles.common.action.LittleAction;
@@ -37,6 +39,7 @@ import team.creative.littletiles.common.math.box.LittleTransformableBox;
 import team.creative.littletiles.common.math.box.LittleTransformableBox.CornerCache;
 import team.creative.littletiles.common.math.vec.LittleVec;
 import team.creative.littletiles.common.math.vec.LittleVecAbsolute;
+import team.creative.littletiles.common.mod.sable.SableBridge;
 import team.creative.littletiles.common.packet.action.ChangedElementPacket;
 import team.creative.littletiles.common.placement.PlacementHelper;
 import team.creative.littletiles.common.placement.PreviewMode;
@@ -64,6 +67,16 @@ public class LittleToolTransformer extends LittleTool {
             return;
         
         var player = renderer.player();
+        var level = renderer.level();
+        if (first != null && level != null && player != null) {
+            var startContext = SableBridge.findContext(level, first.ray.getBlockPos());
+            var currentContext = SableBridge.findContext(level, blockHit.getBlockPos());
+            if (!java.util.Objects.equals(startContext, currentContext)) {
+                BlockHitResult remapped = SableBridge.raytraceInContext(level, player, startContext, TickUtils.getFrameTime(level));
+                if (remapped != null)
+                    blockHit = remapped;
+            }
+        }
         last = new ShapePosition(player, PlacementHelper.getPosition(renderer.level(), blockHit, transformer.getPositionGrid(player, stack)), blockHit, false, transformer
                 .previewInside(player, stack));
     }
@@ -137,11 +150,8 @@ public class LittleToolTransformer extends LittleTool {
         BlockPos pos;
         var builder = renderer.createTesselatorBuilder(lines);
         if (box != null) {
-            pose.pushPose();
-            pose.translate((float) -cam.x, (float) -cam.y, (float) -cam.z);
             for (int i = 0; i < corners.length; i++)
-                renderer.renderLineBox(pose, corners[i].getBB(), marked == i);
-            pose.popPose();
+                renderer.renderPosition(pose, cam, corners[i], corners[i].getGrid(), marked == i);
             
             renderer.buildBox(pose, box.getRenderingBoxWithoutOffset(), builder, 255, lines);
             mesh = builder.build();
@@ -159,7 +169,11 @@ public class LittleToolTransformer extends LittleTool {
         if (mesh != null) {
             var matrix = RenderSystem.getModelViewStack();
             matrix.pushMatrix();
-            matrix.translate((float) (pos.getX() - cam.x), (float) (pos.getY() - cam.y), (float) (pos.getZ() - cam.z));
+            var context = SableBridge.findContext(renderer.level(), pos);
+            if (context != null)
+                SableClientBridge.applyPoseToModelViewForBlockPos(context, pos);
+            else
+                matrix.translate((float) (pos.getX() - cam.x), (float) (pos.getY() - cam.y), (float) (pos.getZ() - cam.z));
             
             RenderSystem.applyModelViewMatrix();
             renderer.setupPreviewRenderer(lines);

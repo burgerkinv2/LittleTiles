@@ -24,6 +24,7 @@ import team.creative.littletiles.common.action.source.LittleActionSource;
 import team.creative.littletiles.common.block.entity.BETiles;
 import team.creative.littletiles.common.block.little.tile.LittleTileContext;
 import team.creative.littletiles.common.entity.LittleEntity;
+import team.creative.littletiles.common.mod.sable.SableBridge;
 
 public abstract class LittleActionInteract<T> extends LittleAction<T> {
     
@@ -99,6 +100,17 @@ public abstract class LittleActionInteract<T> extends LittleAction<T> {
                 transformedPos = animation.getOrigin().transformPointToFakeWorld(transformedPos);
                 transformedLook = animation.getOrigin().transformPointToFakeWorld(transformedLook);
                 transformedCoordinates = true;
+            }
+        } else if (!transformedCoordinates) {
+            var context = SableBridge.findContext(level, blockPos);
+            if (context != null) {
+                Vec3 localPos = SableBridge.transformPointToSubLevelLocal(context, transformedPos);
+                Vec3 localLook = SableBridge.transformPointToSubLevelLocal(context, transformedLook);
+                if (localPos != null && localLook != null) {
+                    transformedPos = localPos;
+                    transformedLook = localLook;
+                    transformedCoordinates = true;
+                }
             }
         }
         

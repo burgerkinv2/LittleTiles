@@ -30,6 +30,7 @@ import team.creative.littletiles.common.block.little.tile.LittleTileContext;
 import team.creative.littletiles.common.block.little.tile.group.LittleGroup;
 import team.creative.littletiles.common.block.little.tile.parent.IParentCollection;
 import team.creative.littletiles.common.entity.LittleEntity;
+import team.creative.littletiles.common.mod.sable.SableBridge;
 import team.creative.littletiles.common.structure.exception.CorruptedConnectionException;
 import team.creative.littletiles.common.structure.exception.NotYetConnectedException;
 
@@ -151,6 +152,16 @@ public class BlockPacket extends CreativePacket {
             level = entity.getSubLevel();
             pos = entity.getOrigin().transformPointToFakeWorld(pos);
             look = entity.getOrigin().transformPointToFakeWorld(look);
+        } else if (level instanceof Level actualLevel) {
+            var context = SableBridge.findContext(actualLevel, blockPos);
+            if (context != null) {
+                Vec3 localPos = SableBridge.transformPointToSubLevelLocal(context, pos);
+                Vec3 localLook = SableBridge.transformPointToSubLevelLocal(context, look);
+                if (localPos != null && localLook != null) {
+                    pos = localPos;
+                    look = localLook;
+                }
+            }
         }
         
         BlockEntity blockEntity = level.getBlockEntity(blockPos);

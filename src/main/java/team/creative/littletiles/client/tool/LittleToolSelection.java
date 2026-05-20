@@ -2,26 +2,29 @@ package team.creative.littletiles.client.tool;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.BufferBuilder;
-import com.mojang.blaze3d.vertex.BufferUploader;
 import com.mojang.blaze3d.vertex.ByteBufferBuilder;
 import com.mojang.blaze3d.vertex.MeshData;
 import com.mojang.blaze3d.vertex.PoseStack;
 
 import net.minecraft.client.KeyMapping;
 import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import team.creative.creativecore.client.render.box.RenderBox;
 import team.creative.creativecore.common.util.math.geo.VectorFan;
+import team.creative.creativecore.common.util.math.box.AlignedBox;
 import team.creative.creativecore.common.util.math.vec.Vec3f;
 import team.creative.creativecore.common.util.mc.ColorUtils;
+import team.creative.creativecore.common.util.mc.TickUtils;
 import team.creative.littletiles.LittleTiles;
 import team.creative.littletiles.api.common.tool.ILittleSelector;
 import team.creative.littletiles.client.render.mc.MeshDataExtender;
 import team.creative.littletiles.client.render.overlay.PreviewRenderer;
 import team.creative.littletiles.common.action.source.LittleActionSource;
 import team.creative.littletiles.common.item.component.SelectionComponent;
+import team.creative.littletiles.common.mod.sable.SableBridge;
 import team.creative.littletiles.common.packet.item.SelectionModePacket;
 
 public class LittleToolSelection extends LittleTool {
@@ -37,6 +40,48 @@ public class LittleToolSelection extends LittleTool {
         this.selector = (ILittleSelector) stack.getItem();
     }
     
+    private void applySelectionLocally(SelectionComponent component) {
+        selector.setSelection(stack, component);
+    }
+
+    private void sendPositionMessage(PreviewRenderer renderer, SelectionComponent component, boolean first) {
+        var player = renderer.player();
+        if (player == null)
+            return;
+        var config = component.getConfig();
+        String key = first ? "pos1" : "pos2";
+        if (!config.contains(key))
+            return;
+        int[] pos = config.getIntArray(key);
+        if (pos.length < 3)
+            return;
+        player.displayClientMessage(Component.translatable("selection.mode.area.pos." + (first ? "first" : "second"), pos[0], pos[1], pos[2]), false);
+    }
+
+    private BlockHitResult remapToSelectionContext(PreviewRenderer renderer, BlockHitResult result) {
+        if (!selector.hasSelection(stack))
+            return result;
+        var player = renderer.player();
+        var level = renderer.level();
+        if (player == null || level == null)
+            return result;
+        var config = selector.getSelection(stack).getConfig();
+        if (!config.contains("pos1"))
+            return result;
+        int[] arr = config.getIntArray("pos1");
+        if (arr.length < 3)
+            return result;
+        BlockPos firstPos = new BlockPos(arr[0], arr[1], arr[2]);
+        var startContext = SableBridge.findContext(level, firstPos);
+        var currentContext = SableBridge.findContext(level, result.getBlockPos());
+        if (!java.util.Objects.equals(startContext, currentContext)) {
+            BlockHitResult remapped = SableBridge.raytraceInContext(level, player, startContext, TickUtils.getFrameTime(level));
+            if (remapped != null)
+                return remapped;
+        }
+        return result;
+    }
+
     private void build(PreviewRenderer renderer) {
         if (!selector.hasSelection(stack))
             return;
@@ -58,11 +103,15 @@ public class LittleToolSelection extends LittleTool {
         if (result == null || !selector.hasSelection(stack))
             return false;
         
+        result = remapToSelectionContext(renderer, result);
         var selection = selector.getSelection(stack);
         var component = selection.mode.rightClick((LittleActionSource) renderer.player(), stack, selection, selector.getSelectorGrid(renderer.player(), stack), result, renderer
                 .selectFocused(result), renderer.isUsingSecondMode());
-        if (component != null)
+        if (component != null) {
+            applySelectionLocally(component);
+            sendPositionMessage(renderer, component, false);
             LittleTiles.NETWORK.sendToServer(new SelectionModePacket(component));
+        }
         return true;
     }
     
@@ -71,11 +120,15 @@ public class LittleToolSelection extends LittleTool {
         if (result == null)
             return false;
         
+        result = remapToSelectionContext(renderer, result);
         var selection = selector.getSelection(stack);
         var component = selection.mode.leftClick((LittleActionSource) renderer.player(), stack, selection, selector.getSelectorGrid(renderer.player(), stack), result, renderer
                 .selectFocused(result), renderer.isUsingSecondMode());
-        if (component != null)
+        if (component != null) {
+            applySelectionLocally(component);
+            sendPositionMessage(renderer, component, true);
             LittleTiles.NETWORK.sendToServer(new SelectionModePacket(component));
+        }
         return true;
     }
     
@@ -85,6 +138,7 @@ public class LittleToolSelection extends LittleTool {
         var component = selection.mode.keyPressed((LittleActionSource) renderer.player(), stack, selection, selector.getSelectorGrid(renderer.player(), stack), renderer
                 .isUsingSecondMode(), key);
         if (component != null) {
+            applySelectionLocally(component);
             LittleTiles.NETWORK.sendToServer(new SelectionModePacket(component));
             return true;
         }
@@ -118,17 +172,7 @@ public class LittleToolSelection extends LittleTool {
         if (result == null || result.data == null)
             return;
         
-        var matrix = RenderSystem.getModelViewStack();
-        matrix.pushMatrix();
-        if (lines)
-            renderer.setupPreviewRendererLines(1, 1, 1, 0.4F, (float) LittleTiles.CONFIG.rendering.previewLineThickness);
-        else
-            renderer.setupPreviewRenderer(lines);
-        matrix.translate((float) (cacheOrigin.getX() - cam.x), (float) (cacheOrigin.getY() - cam.y), (float) (cacheOrigin.getZ() - cam.z));
-        RenderSystem.applyModelViewMatrix();
-        BufferUploader.drawWithShader(result.data);
-        matrix.popMatrix();
-        RenderSystem.applyModelViewMatrix();
+        renderer.renderBoxes(cam, cacheOrigin, lines, result.data);
         
         if (cachedSelection.mode.hasRenderTick(stack, cachedSelection)) {
             pose.pushPose();
@@ -162,6 +206,7 @@ public class LittleToolSelection extends LittleTool {
         private BufferBuilder boxBuilder;
         
         private BlockPos origin = BlockPos.ZERO;
+        private boolean hasOrigin;
         
         public final PreviewRenderer renderer;
         
@@ -176,6 +221,7 @@ public class LittleToolSelection extends LittleTool {
         
         public void setOrigin(BlockPos pos) {
             origin = pos;
+            hasOrigin = true;
         }
         
         public BufferBuilder getBuilder(boolean line) {
@@ -199,12 +245,21 @@ public class LittleToolSelection extends LittleTool {
         }
         
         public void addBox(RenderBox box, boolean line, int alpha) {
+            if (!hasOrigin)
+                setOrigin(BlockPos.containing(box.minX, box.minY, box.minZ));
             checkOrigin();
-            renderer.buildBox(PreviewRenderer.EMPTY, box, getBuilder(line), alpha, line);
+            renderer.buildBox(PreviewRenderer.EMPTY, localize(box), getBuilder(line), alpha, line);
+        }
+
+        private RenderBox localize(RenderBox box) {
+            return new RenderBox(new AlignedBox(box.minX - origin.getX(), box.minY - origin.getY(), box.minZ - origin.getZ(), box.maxX - origin.getX(), box.maxY - origin
+                    .getY(), box.maxZ - origin.getZ()), box);
         }
         
         public void addLine(Vec3 start, Vec3 end, int color) {
             checkOrigin();
+            start = localize(start);
+            end = localize(end);
             int red = ColorUtils.red(color);
             int green = ColorUtils.green(color);
             int blue = ColorUtils.blue(color);
@@ -216,6 +271,10 @@ public class LittleToolSelection extends LittleTool {
                 PreviewRenderer.EMPTY.last(), normal.x, normal.y, normal.z);
             builder.addVertex(PreviewRenderer.EMPTY.last().pose(), (float) end.x, (float) end.y, (float) end.z).setColor(red, green, blue, alpha).setNormal(PreviewRenderer.EMPTY
                     .last(), normal.x, normal.y, normal.z);
+        }
+
+        private Vec3 localize(Vec3 vec) {
+            return vec.subtract(origin.getX(), origin.getY(), origin.getZ());
         }
         
         public SelectionRenderResult build(boolean lines) {

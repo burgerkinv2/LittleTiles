@@ -19,6 +19,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import team.creative.creativecore.Side;
+import team.creative.creativecore.common.util.mc.TickUtils;
 import team.creative.littletiles.LittleTiles;
 import team.creative.littletiles.LittleTilesRegistry;
 import team.creative.littletiles.api.common.tool.ILittleShaper;
@@ -31,6 +32,7 @@ import team.creative.littletiles.client.tool.mode.BuildingModeFeature;
 import team.creative.littletiles.client.tool.mode.BuildingModeFeatures;
 import team.creative.littletiles.common.grid.LittleGrid;
 import team.creative.littletiles.common.math.box.collection.LittleBoxes;
+import team.creative.littletiles.common.mod.sable.SableBridge;
 import team.creative.littletiles.common.packet.item.ShapeConfigPacket;
 import team.creative.littletiles.common.placement.PlacementHelper;
 import team.creative.littletiles.common.placement.PreviewMode;
@@ -128,6 +130,18 @@ public class LittleToolShaper extends LittleTool {
             return;
         var player = renderer.player();
         var level = renderer.level();
+        if (!positions.isEmpty() && level != null && player != null) {
+            ShapePosition first = positions.get(0);
+            if (first != null && first.ray != null) {
+                var startContext = SableBridge.findContext(level, first.ray.getBlockPos());
+                var currentContext = SableBridge.findContext(level, blockHit.getBlockPos());
+                if (!java.util.Objects.equals(startContext, currentContext)) {
+                    BlockHitResult remapped = SableBridge.raytraceInContext(level, player, startContext, TickUtils.getFrameTime(level));
+                    if (remapped != null)
+                        blockHit = remapped;
+                }
+            }
+        }
         var grid = shaper.getPositionGrid(player, stack);
         boolean lines = shaper.previewMode(player, stack) == PreviewMode.LINES;
         var in = shaper.getShape(stack);

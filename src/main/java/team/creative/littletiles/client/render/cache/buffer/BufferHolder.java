@@ -420,7 +420,7 @@ public class BufferHolder implements BufferCache {
         if (buffer == null)
             return;
         int positionOffset = VertexFormatUtils.blockPositionOffset();
-        int formatSize = VertexFormatUtils.blockFormatSize();
+        int formatSize = vertexCount > 0 && length % vertexCount == 0 ? length / vertexCount : VertexFormatUtils.blockFormatSize();
         buffer = buffer.order(ByteOrder.LITTLE_ENDIAN);
         int i = 0;
         while (i < buffer.limit()) {

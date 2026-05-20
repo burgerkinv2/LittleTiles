@@ -1,6 +1,7 @@
 package team.creative.littletiles.server.level.util;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
 
@@ -20,6 +21,7 @@ import team.creative.creativecore.common.level.ISubLevel;
 import team.creative.creativecore.common.level.NeighborUpdateCollector;
 import team.creative.creativecore.common.util.type.map.HashMapList;
 import team.creative.littletiles.LittleTiles;
+import team.creative.littletiles.common.mod.sable.SableBridge;
 import team.creative.littletiles.common.packet.update.NeighborUpdate;
 
 public class NeighborUpdateOrganizer {
@@ -59,11 +61,18 @@ public class NeighborUpdateOrganizer {
                 HashMapList<ChunkPos, BlockPos> chunks = new HashMapList<>();
                 for (BlockPos pos : entry.getValue())
                     chunks.add(new ChunkPos(pos), pos);
+                HashSet<ChunkPos> sableChunks = new HashSet<>();
+                for (Entry<ChunkPos, ArrayList<BlockPos>> chunk : chunks.entrySet())
+                    for (BlockPos pos : chunk.getValue())
+                        if (SableBridge.findContext(level, pos) != null) {
+                            sableChunks.add(chunk.getKey());
+                            break;
+                        }
                 
                 for (Player player : level.players()) {
                     List<BlockPos> collected = new ArrayList<>();
                     for (Entry<ChunkPos, ArrayList<BlockPos>> chunk : chunks.entrySet())
-                        if (checkerboardDistance(chunk.getKey(), (ServerPlayer) player, true) <= player.getServer().getPlayerList().getViewDistance())
+                        if (sableChunks.contains(chunk.getKey()) || checkerboardDistance(chunk.getKey(), (ServerPlayer) player, true) <= player.getServer().getPlayerList().getViewDistance())
                             collected.addAll(chunk.getValue());
                         
                     if (!collected.isEmpty())

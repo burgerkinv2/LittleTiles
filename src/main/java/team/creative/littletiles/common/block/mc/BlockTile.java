@@ -81,6 +81,7 @@ import team.creative.littletiles.api.common.block.LittlePhysicBlock;
 import team.creative.littletiles.api.common.tool.ILittleTool;
 import team.creative.littletiles.client.LittleTilesClient;
 import team.creative.littletiles.client.action.LittleActionHandlerClient;
+import team.creative.littletiles.client.mod.sable.SableClientBridge;
 import team.creative.littletiles.common.action.LittleActionActivated;
 import team.creative.littletiles.common.action.LittleActionDestroy;
 import team.creative.littletiles.common.action.source.LittleActionSource;
@@ -307,7 +308,10 @@ public class BlockTile extends BaseEntityBlock implements LittlePhysicBlock, Sim
     
     @OnlyIn(Dist.CLIENT)
     public VoxelShape getSelectionShape(BlockGetter level, BlockPos pos) {
-        LittleTileContext tileContext = LittleTileContext.selectFocused(level, pos, Minecraft.getInstance().player);
+        var player = Minecraft.getInstance().player;
+        LittleTileContext tileContext = SableClientBridge.selectFocusedWithRenderPose(level, pos, player, TickUtils.getFrameTime(player.level()));
+        if (tileContext == null)
+            tileContext = LittleTileContext.selectFocused(level, pos, player);
         if (tileContext.isComplete()) {
             if (selectEntireBlock((LittleActionSource) Minecraft.getInstance().player, LittleActionHandlerClient.isUsingSecondMode()))
                 return tileContext.parent.getBE().getBlockShape();
