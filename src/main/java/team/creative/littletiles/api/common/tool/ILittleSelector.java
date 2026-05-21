@@ -27,5 +27,9 @@ public interface ILittleSelector {
     public default LittleGrid getSelectorGrid(Player player, ItemStack stack) {
         return PlacementPlayerSetting.grid(player);
     }
+
+    public default boolean canSelectTilesAcrossContexts(ItemStack stack) {
+        return false;
+    }
     
 }

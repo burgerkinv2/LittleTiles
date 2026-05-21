@@ -115,6 +115,11 @@ public class ItemLittleScrewdriver extends Item implements ILittleTool, ILittleS
     }
 
     @Override
+    public boolean canSelectTilesAcrossContexts(ItemStack stack) {
+        return true;
+    }
+
+    @Override
     @OnlyIn(Dist.CLIENT)
     public LittleTool tool(ItemStack stack) {
         return new LittleToolSelection(stack);

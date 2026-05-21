@@ -211,7 +211,7 @@ public class PreviewRenderer {
         matrix.pushMatrix();
         var context = SableBridge.findContext(level(), pos);
         if (context != null)
-            SableClientBridge.applyPoseToModelViewForBlockPos(context, pos);
+            SableClientBridge.applyPoseToModelViewForBlockPos(context, pos, cam, partialTickTime());
         else
             matrix.translate((float) (pos.getX() - cam.x), (float) (pos.getY() - cam.y), (float) (pos.getZ() - cam.z));
         
@@ -225,7 +225,7 @@ public class PreviewRenderer {
         matrix.popMatrix();
         RenderSystem.applyModelViewMatrix();
     }
-    
+
     public BoxRenderResult buildBoxes(PoseStack pose, LittleBoxes boxes, boolean lines) {
         ByteBufferBuilder buffer = createBuffer();
         var builder = createBuilder(buffer, lines);
@@ -266,14 +266,18 @@ public class PreviewRenderer {
     }
 
     private void renderLineBox(PoseStack pose, Vec3 cam, BlockPos pos, ABB localBox, ABB worldBox, boolean selected) {
+        renderLineBox(pose, cam, pos, localBox, worldBox, selected ? ColorUtils.ORANGE : -1);
+    }
+
+    private void renderLineBox(PoseStack pose, Vec3 cam, BlockPos pos, ABB localBox, ABB worldBox, int color) {
         pose.pushPose();
         var context = SableBridge.findContext(level(), pos);
         if (context != null) {
-            SableClientBridge.applyPoseToPoseStackForBlockPos(context, pos, pose, cam.x, cam.y, cam.z);
-            renderLineBox(pose, localBox, selected);
+            SableClientBridge.applyPoseToPoseStackForBlockPos(context, pos, pose, cam.x, cam.y, cam.z, partialTickTime());
+            renderLineBox(pose, localBox, color);
         } else {
             pose.translate(-cam.x, -cam.y, -cam.z);
-            renderLineBox(pose, worldBox, selected);
+            renderLineBox(pose, worldBox, color);
         }
         pose.popPose();
     }
@@ -298,6 +302,10 @@ public class PreviewRenderer {
     }
     
     public void renderLineBox(PoseStack pose, ABB box, boolean selected) {
+        renderLineBox(pose, box, selected ? ColorUtils.ORANGE : -1);
+    }
+
+    public void renderLineBox(PoseStack pose, ABB box, int color) {
         Tesselator tesselator = Tesselator.getInstance();
         BufferBuilder bufferbuilder = tesselator.begin(VertexFormat.Mode.LINES, DefaultVertexFormat.POSITION_COLOR_NORMAL);
         
@@ -317,10 +325,10 @@ public class PreviewRenderer {
         BufferUploader.drawWithShader(bufferbuilder.buildOrThrow());
         
         RenderSystem.disableDepthTest();
-        if (selected) {
+        if (color != -1) {
             bufferbuilder = tesselator.begin(VertexFormat.Mode.LINES, DefaultVertexFormat.POSITION_COLOR_NORMAL);
             RenderSystem.lineWidth(1.0F);
-            box.renderLines(pose, bufferbuilder, 1F, 0.3F, 0.0F, 1F);
+            box.renderLines(pose, bufferbuilder, ColorUtils.redF(color), ColorUtils.greenF(color), ColorUtils.blueF(color), ColorUtils.alphaF(color));
             BufferUploader.drawWithShader(bufferbuilder.buildOrThrow());
         }
         

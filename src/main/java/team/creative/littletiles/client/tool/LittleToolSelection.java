@@ -1,5 +1,7 @@
 package team.creative.littletiles.client.tool;
 
+import java.util.Objects;
+
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.BufferUploader;
@@ -11,20 +13,28 @@ import net.minecraft.client.KeyMapping;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import team.creative.creativecore.client.render.box.RenderBox;
+import team.creative.creativecore.common.util.math.box.ABB;
 import team.creative.creativecore.common.util.math.geo.VectorFan;
 import team.creative.creativecore.common.util.math.vec.Vec3f;
 import team.creative.creativecore.common.util.mc.ColorUtils;
 import team.creative.creativecore.common.util.mc.TickUtils;
 import team.creative.littletiles.LittleTiles;
 import team.creative.littletiles.api.common.tool.ILittleSelector;
+import team.creative.littletiles.client.mod.sable.SableClientBridge;
 import team.creative.littletiles.client.render.mc.MeshDataExtender;
 import team.creative.littletiles.client.render.overlay.PreviewRenderer;
 import team.creative.littletiles.common.action.source.LittleActionSource;
+import team.creative.littletiles.common.grid.LittleGrid;
 import team.creative.littletiles.common.item.component.SelectionComponent;
+import team.creative.littletiles.common.math.box.LittleBox;
+import team.creative.littletiles.common.math.box.LittleBoxAbsolute;
+import team.creative.littletiles.common.math.box.collection.LittleBoxesNoOverlap;
 import team.creative.littletiles.common.mod.sable.SableBridge;
+import team.creative.littletiles.common.placement.selection.TileSelectionMode;
 import team.creative.littletiles.common.packet.item.SelectionModePacket;
 
 public class LittleToolSelection extends LittleTool {
@@ -82,6 +92,20 @@ public class LittleToolSelection extends LittleTool {
         return result;
     }
 
+    private boolean canUseContext(PreviewRenderer renderer, SelectionComponent selection, BlockHitResult result) {
+        if (!(selection.mode instanceof TileSelectionMode) || selector.canSelectTilesAcrossContexts(stack))
+            return true;
+        var config = selection.getConfig();
+        if (!config.contains("boxes"))
+            return true;
+        var currentContext = SableBridge.findContext(renderer.level(), result.getBlockPos());
+        var boxes = new LittleBoxesNoOverlap(config.getCompound("boxes"));
+        for (BlockPos pos : boxes.generateBlockWise().keySet())
+            if (!Objects.equals(currentContext, SableBridge.findContext(renderer.level(), pos)))
+                return false;
+        return true;
+    }
+
     private void build(PreviewRenderer renderer) {
         if (!selector.hasSelection(stack))
             return;
@@ -93,18 +117,20 @@ public class LittleToolSelection extends LittleTool {
         cachedSelection = selection;
         SelectionRenderQueue queue = new SelectionRenderQueue(renderer);
         cachedSelection.mode.buildRender(renderer.level(), stack, selector.getSelection(stack), queue);
-        cacheOrigin = queue.origin;
+        cacheOrigin = queue.origin != null ? queue.origin : BlockPos.ZERO;
         lineCache = queue.build(true);
         boxCache = queue.build(false);
     }
-    
+
     @Override
     public boolean onRightClick(PreviewRenderer renderer, BlockHitResult result) {
         if (result == null || !selector.hasSelection(stack))
             return false;
         
-        result = remapToSelectionContext(renderer, result);
         var selection = selector.getSelection(stack);
+        if (!canUseContext(renderer, selection, result))
+            return false;
+        result = remapToSelectionContext(renderer, result);
         var component = selection.mode.rightClick((LittleActionSource) renderer.player(), stack, selection, selector.getSelectorGrid(renderer.player(), stack), result, renderer
                 .selectFocused(result), renderer.isUsingSecondMode());
         if (component != null) {
@@ -121,6 +147,8 @@ public class LittleToolSelection extends LittleTool {
             return false;
         
         var selection = selector.getSelection(stack);
+        if (!canUseContext(renderer, selection, result))
+            return false;
         var component = selection.mode.leftClick((LittleActionSource) renderer.player(), stack, selection, selector.getSelectorGrid(renderer.player(), stack), result, renderer
                 .selectFocused(result), renderer.isUsingSecondMode());
         if (component != null) {
@@ -177,7 +205,11 @@ public class LittleToolSelection extends LittleTool {
             renderer.setupPreviewRendererLines(1, 1, 1, 0.4F, (float) LittleTiles.CONFIG.rendering.previewLineThickness);
         else
             renderer.setupPreviewRenderer(lines);
-        matrix.translate((float) (cacheOrigin.getX() - cam.x), (float) (cacheOrigin.getY() - cam.y), (float) (cacheOrigin.getZ() - cam.z));
+        var context = SableBridge.findContext(renderer.level(), cacheOrigin);
+        if (context != null)
+            SableClientBridge.applyPoseToModelViewForBlockPos(context, cacheOrigin, cam, renderer.partialTickTime());
+        else
+            matrix.translate((float) (cacheOrigin.getX() - cam.x), (float) (cacheOrigin.getY() - cam.y), (float) (cacheOrigin.getZ() - cam.z));
         RenderSystem.applyModelViewMatrix();
         BufferUploader.drawWithShader(result.data);
         matrix.popMatrix();
@@ -214,17 +246,12 @@ public class LittleToolSelection extends LittleTool {
         private ByteBufferBuilder boxBuffer;
         private BufferBuilder boxBuilder;
         
-        private BlockPos origin = BlockPos.ZERO;
+        private BlockPos origin;
         
         public final PreviewRenderer renderer;
         
         public SelectionRenderQueue(PreviewRenderer renderer) {
             this.renderer = renderer;
-        }
-        
-        protected void checkOrigin() {
-            if (origin == null)
-                throw new RuntimeException("First origin needs to be set");
         }
         
         public void setOrigin(BlockPos pos) {
@@ -252,23 +279,61 @@ public class LittleToolSelection extends LittleTool {
         }
         
         public void addBox(RenderBox box, boolean line, int alpha) {
-            checkOrigin();
-            renderer.buildBox(PreviewRenderer.EMPTY, box, getBuilder(line), alpha, line);
+            addBox(box.minX, box.minY, box.minZ, box.maxX, box.maxY, box.maxZ, line, alpha, box);
         }
-        
+
+        public void addBox(BlockPos pos, boolean line) {
+            addBox(pos.getX(), pos.getY(), pos.getZ(), pos.getX() + 1D, pos.getY() + 1D, pos.getZ() + 1D, line, 255, null);
+        }
+
+        public void addBox(LittleBoxAbsolute box, boolean line, int alpha, int color) {
+            addBox(box.toABB(), line, alpha, color);
+        }
+
+        public void addBox(ABB box, boolean line, int alpha, int color) {
+            RenderBox template = new RenderBox(0, 0, 0, 0, 0, 0, (BlockState) null);
+            template.color = color;
+            addBox(box.minX, box.minY, box.minZ, box.maxX, box.maxY, box.maxZ, line, alpha, template);
+        }
+
+        public void addBox(LittleGrid grid, BlockPos pos, LittleBox box, boolean line) {
+            addBox(pos.getX() + grid.toVanillaGrid(box.minX), pos.getY() + grid.toVanillaGrid(box.minY), pos.getZ() + grid.toVanillaGrid(box.minZ), pos.getX() + grid
+                    .toVanillaGrid(box.maxX), pos.getY() + grid.toVanillaGrid(box.maxY), pos.getZ() + grid.toVanillaGrid(box.maxZ), line, 255, null);
+        }
+
+        public void addBox(double minX, double minY, double minZ, double maxX, double maxY, double maxZ, boolean line, int alpha) {
+            addBox(minX, minY, minZ, maxX, maxY, maxZ, line, alpha, null);
+        }
+
+        private void addBox(double minX, double minY, double minZ, double maxX, double maxY, double maxZ, boolean line, int alpha, RenderBox template) {
+            checkOrigin(minX, minY, minZ);
+            float localMinX = (float) (minX - origin.getX());
+            float localMinY = (float) (minY - origin.getY());
+            float localMinZ = (float) (minZ - origin.getZ());
+            float localMaxX = (float) (maxX - origin.getX());
+            float localMaxY = (float) (maxY - origin.getY());
+            float localMaxZ = (float) (maxZ - origin.getZ());
+            RenderBox local = new RenderBox(localMinX, localMinY, localMinZ, localMaxX, localMaxY, localMaxZ, template != null ? template.state : (BlockState) null);
+            if (template != null)
+                local = new RenderBox(local, template);
+            renderer.buildBox(PreviewRenderer.EMPTY, local, getBuilder(line), alpha, line);
+        }
+
         public void addLine(Vec3 start, Vec3 end, int color) {
-            checkOrigin();
+            checkOrigin(start);
             int red = ColorUtils.red(color);
             int green = ColorUtils.green(color);
             int blue = ColorUtils.blue(color);
             int alpha = ColorUtils.alpha(color);
             Vec3f normal = new Vec3f();
             var builder = getBuilder(true);
-            VectorFan.setLineNormal(normal, (float) start.x, (float) start.y, (float) start.z, (float) end.x, (float) end.y, (float) end.z);
-            builder.addVertex(PreviewRenderer.EMPTY.last().pose(), (float) start.x, (float) start.y, (float) start.z).setColor(red, green, blue, alpha).setNormal(
+            Vec3 localStart = start.subtract(origin.getX(), origin.getY(), origin.getZ());
+            Vec3 localEnd = end.subtract(origin.getX(), origin.getY(), origin.getZ());
+            VectorFan.setLineNormal(normal, (float) localStart.x, (float) localStart.y, (float) localStart.z, (float) localEnd.x, (float) localEnd.y, (float) localEnd.z);
+            builder.addVertex(PreviewRenderer.EMPTY.last().pose(), (float) localStart.x, (float) localStart.y, (float) localStart.z).setColor(red, green, blue, alpha).setNormal(
                 PreviewRenderer.EMPTY.last(), normal.x, normal.y, normal.z);
-            builder.addVertex(PreviewRenderer.EMPTY.last().pose(), (float) end.x, (float) end.y, (float) end.z).setColor(red, green, blue, alpha).setNormal(PreviewRenderer.EMPTY
-                    .last(), normal.x, normal.y, normal.z);
+            builder.addVertex(PreviewRenderer.EMPTY.last().pose(), (float) localEnd.x, (float) localEnd.y, (float) localEnd.z).setColor(red, green, blue, alpha).setNormal(
+                PreviewRenderer.EMPTY.last(), normal.x, normal.y, normal.z);
         }
         
         public SelectionRenderResult build(boolean lines) {
@@ -285,9 +350,18 @@ public class LittleToolSelection extends LittleTool {
             ((MeshDataExtender) data).keepAlive(true);
             return new SelectionRenderResult(boxBuffer, data);
         }
+
+        private void checkOrigin(double minX, double minY, double minZ) {
+            if (origin == null)
+                origin = BlockPos.containing(minX, minY, minZ);
+        }
         
+        private void checkOrigin(Vec3 start) {
+            if (origin == null)
+                origin = BlockPos.containing(start);
+        }
     }
-    
+
     public static record SelectionRenderResult(ByteBufferBuilder buffer, MeshData data) {
         
         public void close() {

@@ -191,15 +191,12 @@ public class PreviewManager implements LevelAwareHandler {
         
         Vec3 cam = MC.gameRenderer.getMainCamera().getPosition();
         
-        PoseStack pose = event.getPoseStack();
-        if (tool != null)
-            tool.render(renderer, pose, cam, true);
-
         BlockPos targetPos = event.getTarget().getBlockPos();
         if (SableBridge.findContext(level, targetPos) != null)
             return;
         
         if (!event.isCanceled() && level.getBlockState(targetPos).getBlock() instanceof BlockTile && level.getWorldBorder().isWithinBounds(targetPos)) {
+            PoseStack pose = event.getPoseStack();
             BlockPos pos = targetPos;
             BlockState state = level.getBlockState(pos);
             VoxelShape shape;

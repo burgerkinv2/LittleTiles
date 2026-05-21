@@ -158,24 +158,18 @@ public class ExactAreaSelectionMode extends SelectionMode {
             pos2 = LittleBoxAbsolute.of(nbt.getIntArray("pos2"));
         
         if (pos1 != null) {
-            var box = pos1.getRenderingBox();
-            if (marked == 1)
-                box.color = ColorUtils.ORANGE;
-            queue.addBox(box, true);
+            queue.addBox(pos1, true, 255, marked == 1 ? ColorUtils.ORANGE : -1);
         }
         
         if (pos2 != null) {
-            var box = pos2.getRenderingBox();
-            if (marked == 2)
-                box.color = ColorUtils.ORANGE;
-            queue.addBox(box, true);
+            queue.addBox(pos2, true, 255, marked == 2 ? ColorUtils.ORANGE : -1);
         }
         
         if (pos1 != null && pos2 != null) {
             pos1.include(pos2);
-            var box = pos1.getRenderingBox();
-            box.grow(0.01F);
-            queue.addBox(box, false, 100);
+            var box = pos1.toABB();
+            box.inflate(0.01);
+            queue.addBox(box, false, 100, -1);
         }
     }
     

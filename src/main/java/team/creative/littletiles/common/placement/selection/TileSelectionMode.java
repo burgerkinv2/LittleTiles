@@ -33,7 +33,6 @@ import team.creative.littletiles.common.item.component.SelectionComponent;
 import team.creative.littletiles.common.math.box.LittleBox;
 import team.creative.littletiles.common.math.box.collection.LittleBoxesNoOverlap;
 import team.creative.littletiles.common.math.box.collection.LittleBoxesSimple;
-import team.creative.littletiles.common.math.vec.LittleVec;
 
 public class TileSelectionMode extends SelectionMode {
     
@@ -137,11 +136,9 @@ public class TileSelectionMode extends SelectionMode {
         if (boxes.isEmpty())
             return;
         
-        LittleVec vec = new LittleVec(0, 0, 0);
         for (Entry<BlockPos, ArrayList<LittleBox>> entry : boxes.generateBlockWise().entrySet()) {
-            vec.set(boxes.grid, entry.getKey());
             for (LittleBox box : entry.getValue())
-                queue.addBox(box.getRenderingBox(boxes.grid, vec), true);
+                queue.addBox(boxes.grid, entry.getKey(), box, true);
         }
     }
     
