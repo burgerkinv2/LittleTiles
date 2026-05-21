@@ -58,6 +58,9 @@ public class ExactAreaSelectionMode extends SelectionMode {
     public SelectionComponent leftClick(LittleActionSource source, ItemStack stack, SelectionComponent config, LittleGrid positionGrid, BlockHitResult hit,
             LittleTileContext context, boolean secondMode) {
         var nbt = config.getConfig();
+        nbt.remove("pos2");
+        nbt.remove("marked");
+        nbt.remove("boxes");
         var pos = PlacementHelper.getPositionInside(source.getActionLevel(), hit, positionGrid);
         nbt.putIntArray("pos1", pos.toAbsoluteBox().toArray());
         return config.withConfig(nbt);

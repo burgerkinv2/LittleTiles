@@ -2,6 +2,7 @@ package team.creative.littletiles.client.tool;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.BufferBuilder;
+import com.mojang.blaze3d.vertex.BufferUploader;
 import com.mojang.blaze3d.vertex.ByteBufferBuilder;
 import com.mojang.blaze3d.vertex.MeshData;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -14,7 +15,6 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import team.creative.creativecore.client.render.box.RenderBox;
 import team.creative.creativecore.common.util.math.geo.VectorFan;
-import team.creative.creativecore.common.util.math.box.AlignedBox;
 import team.creative.creativecore.common.util.math.vec.Vec3f;
 import team.creative.creativecore.common.util.mc.ColorUtils;
 import team.creative.creativecore.common.util.mc.TickUtils;
@@ -120,7 +120,6 @@ public class LittleToolSelection extends LittleTool {
         if (result == null)
             return false;
         
-        result = remapToSelectionContext(renderer, result);
         var selection = selector.getSelection(stack);
         var component = selection.mode.leftClick((LittleActionSource) renderer.player(), stack, selection, selector.getSelectorGrid(renderer.player(), stack), result, renderer
                 .selectFocused(result), renderer.isUsingSecondMode());
@@ -172,7 +171,17 @@ public class LittleToolSelection extends LittleTool {
         if (result == null || result.data == null)
             return;
         
-        renderer.renderBoxes(cam, cacheOrigin, lines, result.data);
+        var matrix = RenderSystem.getModelViewStack();
+        matrix.pushMatrix();
+        if (lines)
+            renderer.setupPreviewRendererLines(1, 1, 1, 0.4F, (float) LittleTiles.CONFIG.rendering.previewLineThickness);
+        else
+            renderer.setupPreviewRenderer(lines);
+        matrix.translate((float) (cacheOrigin.getX() - cam.x), (float) (cacheOrigin.getY() - cam.y), (float) (cacheOrigin.getZ() - cam.z));
+        RenderSystem.applyModelViewMatrix();
+        BufferUploader.drawWithShader(result.data);
+        matrix.popMatrix();
+        RenderSystem.applyModelViewMatrix();
         
         if (cachedSelection.mode.hasRenderTick(stack, cachedSelection)) {
             pose.pushPose();
@@ -206,7 +215,6 @@ public class LittleToolSelection extends LittleTool {
         private BufferBuilder boxBuilder;
         
         private BlockPos origin = BlockPos.ZERO;
-        private boolean hasOrigin;
         
         public final PreviewRenderer renderer;
         
@@ -221,7 +229,6 @@ public class LittleToolSelection extends LittleTool {
         
         public void setOrigin(BlockPos pos) {
             origin = pos;
-            hasOrigin = true;
         }
         
         public BufferBuilder getBuilder(boolean line) {
@@ -245,21 +252,12 @@ public class LittleToolSelection extends LittleTool {
         }
         
         public void addBox(RenderBox box, boolean line, int alpha) {
-            if (!hasOrigin)
-                setOrigin(BlockPos.containing(box.minX, box.minY, box.minZ));
             checkOrigin();
-            renderer.buildBox(PreviewRenderer.EMPTY, localize(box), getBuilder(line), alpha, line);
-        }
-
-        private RenderBox localize(RenderBox box) {
-            return new RenderBox(new AlignedBox(box.minX - origin.getX(), box.minY - origin.getY(), box.minZ - origin.getZ(), box.maxX - origin.getX(), box.maxY - origin
-                    .getY(), box.maxZ - origin.getZ()), box);
+            renderer.buildBox(PreviewRenderer.EMPTY, box, getBuilder(line), alpha, line);
         }
         
         public void addLine(Vec3 start, Vec3 end, int color) {
             checkOrigin();
-            start = localize(start);
-            end = localize(end);
             int red = ColorUtils.red(color);
             int green = ColorUtils.green(color);
             int blue = ColorUtils.blue(color);
@@ -271,10 +269,6 @@ public class LittleToolSelection extends LittleTool {
                 PreviewRenderer.EMPTY.last(), normal.x, normal.y, normal.z);
             builder.addVertex(PreviewRenderer.EMPTY.last().pose(), (float) end.x, (float) end.y, (float) end.z).setColor(red, green, blue, alpha).setNormal(PreviewRenderer.EMPTY
                     .last(), normal.x, normal.y, normal.z);
-        }
-
-        private Vec3 localize(Vec3 vec) {
-            return vec.subtract(origin.getX(), origin.getY(), origin.getZ());
         }
         
         public SelectionRenderResult build(boolean lines) {
