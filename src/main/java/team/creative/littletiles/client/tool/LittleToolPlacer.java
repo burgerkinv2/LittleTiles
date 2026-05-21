@@ -335,7 +335,7 @@ public class LittleToolPlacer extends LittleTool {
         BlockPos placedBp = BlockPos.containing(placedX, placedY, placedZ);
         var context = SableBridge.findContext(renderer.level(), placedBp);
         if (context != null)
-            SableClientBridge.applyPoseToModelViewForPosition(context, placedX, placedY, placedZ);
+            SableClientBridge.applyPoseToModelViewForPosition(context, placedX, placedY, placedZ, cam, renderer.partialTickTime());
         else
             matrix.translate((float) (placedX - cam.x), (float) (placedY - cam.y), (float) (placedZ - cam.z));
         RenderSystem.applyModelViewMatrix();

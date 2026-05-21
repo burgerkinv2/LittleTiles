@@ -171,7 +171,7 @@ public class LittleToolTransformer extends LittleTool {
             matrix.pushMatrix();
             var context = SableBridge.findContext(renderer.level(), pos);
             if (context != null)
-                SableClientBridge.applyPoseToModelViewForBlockPos(context, pos);
+                SableClientBridge.applyPoseToModelViewForBlockPos(context, pos, cam, renderer.partialTickTime());
             else
                 matrix.translate((float) (pos.getX() - cam.x), (float) (pos.getY() - cam.y), (float) (pos.getZ() - cam.z));
             

@@ -6,6 +6,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.Vec3;
 import team.creative.littletiles.LittleTiles;
 import team.creative.littletiles.common.block.little.tile.LittleTileContext;
 import team.creative.littletiles.common.mod.sable.SableBridge;
@@ -27,30 +28,42 @@ public final class SableClientBridge {
     }
     
     public static void applyPoseToModelViewForBlockPos(Context context, BlockPos blockPos) {
+        applyPoseToModelViewForBlockPos(context, blockPos, null, 1);
+    }
+
+    public static void applyPoseToModelViewForBlockPos(Context context, BlockPos blockPos, Vec3 cam, float partialTick) {
         if (!SableBridge.isAvailable() || context == null || blockPos == null)
             return;
         try {
-            SableClientBridgeImpl.applyPoseToModelViewForBlockPos(context, blockPos);
+            SableClientBridgeImpl.applyPoseToModelViewForBlockPos(context, blockPos, cam, partialTick);
         } catch (Throwable t) {
             LittleTiles.LOGGER.debug("[sable] failed to apply model-view pose for {}: {}", blockPos, t.toString());
         }
     }
     
     public static void applyPoseToModelViewForPosition(Context context, double x, double y, double z) {
+        applyPoseToModelViewForPosition(context, x, y, z, null, 1);
+    }
+
+    public static void applyPoseToModelViewForPosition(Context context, double x, double y, double z, Vec3 cam, float partialTick) {
         if (!SableBridge.isAvailable() || context == null)
             return;
         try {
-            SableClientBridgeImpl.applyPoseToModelViewForPosition(context, x, y, z);
+            SableClientBridgeImpl.applyPoseToModelViewForPosition(context, x, y, z, cam, partialTick);
         } catch (Throwable t) {
             LittleTiles.LOGGER.debug("[sable] failed to apply model-view pose for position [{}, {}, {}]: {}", x, y, z, t.toString());
         }
     }
     
     public static void applyPoseToPoseStackForBlockPos(Context context, BlockPos blockPos, PoseStack stack, double camX, double camY, double camZ) {
+        applyPoseToPoseStackForBlockPos(context, blockPos, stack, camX, camY, camZ, 1);
+    }
+
+    public static void applyPoseToPoseStackForBlockPos(Context context, BlockPos blockPos, PoseStack stack, double camX, double camY, double camZ, float partialTick) {
         if (!SableBridge.isAvailable() || context == null || blockPos == null || stack == null)
             return;
         try {
-            SableClientBridgeImpl.applyPoseToPoseStackForBlockPos(context, blockPos, stack, camX, camY, camZ);
+            SableClientBridgeImpl.applyPoseToPoseStackForBlockPos(context, blockPos, stack, camX, camY, camZ, partialTick);
         } catch (Throwable t) {
             LittleTiles.LOGGER.debug("[sable] failed to apply pose stack for {}: {}", blockPos, t.toString());
         }

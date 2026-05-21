@@ -6,12 +6,10 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
-import team.creative.creativecore.client.render.box.RenderBox;
 import team.creative.littletiles.LittleTiles;
 import team.creative.littletiles.client.tool.LittleToolSelection.SelectionRenderQueue;
 import team.creative.littletiles.common.action.exception.AreaTooLarge;
@@ -144,10 +142,10 @@ public class AreaSelectionMode extends SelectionMode {
         }
         
         if (pos != null)
-            queue.addBox(new RenderBox(pos.getX(), pos.getY(), pos.getZ(), pos.getX() + 1, pos.getY() + 1, pos.getZ() + 1, (BlockState) null), true);
+            queue.addBox(pos, true);
         
         if (pos2 != null)
-            queue.addBox(new RenderBox(pos2.getX(), pos2.getY(), pos2.getZ(), pos2.getX() + 1, pos2.getY() + 1, pos2.getZ() + 1, (BlockState) null), true);
+            queue.addBox(pos2, true);
         
         if (pos != null && pos2 != null) {
             int minX = Math.min(pos.getX(), pos2.getX());
@@ -156,9 +154,7 @@ public class AreaSelectionMode extends SelectionMode {
             int maxX = Math.max(pos.getX(), pos2.getX());
             int maxY = Math.max(pos.getY(), pos2.getY());
             int maxZ = Math.max(pos.getZ(), pos2.getZ());
-            var box = new RenderBox(minX, minY, minZ, maxX + 1, maxY + 1, maxZ + 1, (BlockState) null);
-            box.grow(0.01F);
-            queue.addBox(box, false, 100);
+            queue.addBox(minX - 0.01, minY - 0.01, minZ - 0.01, maxX + 1.01, maxY + 1.01, maxZ + 1.01, false, 100);
         }
     }
 }

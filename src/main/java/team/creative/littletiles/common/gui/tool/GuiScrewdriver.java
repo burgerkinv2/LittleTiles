@@ -123,7 +123,7 @@ public class GuiScrewdriver extends GuiConfigure {
         boolean colorize = get("colorize", GuiCheckBox.class).value;
 
         if (remove)
-            return new LittleActionDestroyBoxes(level, boxes);
+            return destroyAction(level, boxes, filter);
         else {
             List<LittleAction> actions = new ArrayList<>();
 
@@ -137,18 +137,18 @@ public class GuiScrewdriver extends GuiConfigure {
                             DialogButton.OK);
                         return null;
                     }
-                    actions.add(new LittleActionDestroyBoxes(level, boxes));
+                    actions.add(destroyAction(level, boxes, filter));
                     LittleGroupAbsolute previews = new LittleGroupAbsolute(boxes.pos);
                     previews.add(boxes.grid, new LittleElement(replacementBlock.defaultBlockState(), ColorUtils.WHITE), boxes);
 
-                    actions.add(new LittleActionDestroyBoxes(level, boxes));
+                    actions.add(destroyAction(level, boxes, filter));
                     actions.add(new LittleActionPlace(PlaceAction.ABSOLUTE, PlacementPreview.absolute(level, PlacementMode.FILL, previews)));
                 }
             }
 
             if (colorize) {
                 GuiColorPicker picker = get("picker");
-                actions.add(new LittleActionColorBoxes(level, boxes, picker.color.toInt(), false));
+                actions.add(colorAction(level, boxes, picker.color.toInt(), filter));
             }
 
             if (!actions.isEmpty())
@@ -159,6 +159,18 @@ public class GuiScrewdriver extends GuiConfigure {
             GuiDialogHandler.openDialog(getIntegratedParent(), "screwdriver_dialog", Component.translatable("dialog.screwdriver.no_task"), (x, y) -> {}, DialogButton.OK);
 
         return null;
+    }
+
+    private LittleAction destroyAction(Level level, LittleBoxes boxes, BiFilter<IParentCollection, LittleTile> filter) {
+        if (filter != null)
+            return new LittleActionDestroyBoxes.LittleActionDestroyBoxesFiltered(level, boxes, filter);
+        return new LittleActionDestroyBoxes(level, boxes);
+    }
+
+    private LittleAction colorAction(Level level, LittleBoxes boxes, int color, BiFilter<IParentCollection, LittleTile> filter) {
+        if (filter != null)
+            return new LittleActionColorBoxes.LittleActionColorBoxesFiltered(level, boxes, color, false, filter);
+        return new LittleActionColorBoxes(level, boxes, color, false);
     }
 
     private LittleBoxes scanForMode(Level level, SelectionComponent component, BiFilter<IParentCollection, LittleTile> filter) {
