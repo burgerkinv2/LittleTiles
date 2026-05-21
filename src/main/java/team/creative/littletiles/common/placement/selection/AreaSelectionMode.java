@@ -59,6 +59,9 @@ public class AreaSelectionMode extends SelectionMode {
     public SelectionComponent leftClick(LittleActionSource source, ItemStack stack, SelectionComponent config, LittleGrid positionGrid, BlockHitResult hit,
             @Nullable LittleTileContext context, boolean secondMode) {
         var nbt = config.getConfig();
+        nbt.remove("pos2");
+        nbt.remove("marked");
+        nbt.remove("boxes");
         var pos = hit.getBlockPos();
         nbt.putIntArray("pos1", new int[] { pos.getX(), pos.getY(), pos.getZ() });
         if (!source.isClient())
