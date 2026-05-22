@@ -12,7 +12,13 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
+import team.creative.creativecore.common.util.math.box.ABB;
+import team.creative.creativecore.common.util.math.box.OBB;
+import team.creative.creativecore.common.util.math.base.Axis;
+import team.creative.creativecore.common.util.math.matrix.IVecOrigin;
+import team.creative.creativecore.common.util.math.matrix.Matrix3;
 import team.creative.creativecore.common.util.mc.PlayerUtils;
+import team.creative.creativecore.common.util.math.vec.Vec3d;
 import team.creative.littletiles.common.mod.sable.SableBridge.Context;
 
 final class SableBridgeImpl {
@@ -35,6 +41,14 @@ final class SableBridgeImpl {
 
     static Vec3 transformPointToSubLevelWorld(Context context, Vec3 point) {
         return ((SubLevel) context.unwrap()).logicalPose().transformPosition(point);
+    }
+
+    static Vec3 transformVectorToSubLevelWorld(Context context, Vec3 vector) {
+        return ((SubLevel) context.unwrap()).logicalPose().transformNormal(vector);
+    }
+
+    static Vec3 transformVectorToSubLevelLocal(Context context, Vec3 vector) {
+        return ((SubLevel) context.unwrap()).logicalPose().transformNormalInverse(vector);
     }
 
     private static AABB transformAABB(AABB box, java.util.function.Function<Vec3, Vec3> transformer) {
@@ -68,6 +82,10 @@ final class SableBridgeImpl {
         return transformAABB(box, point -> transformPointToSubLevelWorld(context, point));
     }
 
+    static ABB transformOBBToSubLevelWorld(Context context, ABB box, IVecOrigin origin) {
+        return new OBB(box, new SableComposedOrigin(context, origin));
+    }
+
     static BlockHitResult raytraceInContext(Level level, Player player, Context context, float partialTick) {
         Vec3 eye = player.getEyePosition(partialTick);
         double reach = PlayerUtils.getReach(player);
@@ -89,5 +107,190 @@ final class SableBridgeImpl {
         if (context == null)
             ext.sable$setSubLevelIgnoring((Predicate<SubLevel>) x -> true);
         return level.clip(ctx);
+    }
+
+    private static final class SableComposedOrigin implements IVecOrigin {
+
+        private final Context context;
+        private final IVecOrigin origin;
+
+        private SableComposedOrigin(Context context, IVecOrigin origin) {
+            this.context = context;
+            this.origin = origin;
+        }
+
+        @Override
+        public void transformPointToWorld(Vec3d vec) {
+            origin.transformPointToWorld(vec);
+            Vec3 transformed = transformPointToSubLevelWorld(context, new Vec3(vec.x, vec.y, vec.z));
+            vec.set(transformed.x, transformed.y, transformed.z);
+        }
+
+        @Override
+        public void transformPointToFakeWorld(Vec3d vec) {
+            Vec3 transformed = transformPointToSubLevelLocal(context, new Vec3(vec.x, vec.y, vec.z));
+            vec.set(transformed.x, transformed.y, transformed.z);
+            origin.transformPointToFakeWorld(vec);
+        }
+
+        @Override
+        public double offX() {
+            return origin.offX();
+        }
+
+        @Override
+        public double offY() {
+            return origin.offY();
+        }
+
+        @Override
+        public double offZ() {
+            return origin.offZ();
+        }
+
+        @Override
+        public double rotX() {
+            return origin.rotX();
+        }
+
+        @Override
+        public double rotY() {
+            return origin.rotY();
+        }
+
+        @Override
+        public double rotZ() {
+            return origin.rotZ();
+        }
+
+        @Override
+        public double offXLast() {
+            return origin.offXLast();
+        }
+
+        @Override
+        public double offYLast() {
+            return origin.offYLast();
+        }
+
+        @Override
+        public double offZLast() {
+            return origin.offZLast();
+        }
+
+        @Override
+        public double rotXLast() {
+            return origin.rotXLast();
+        }
+
+        @Override
+        public double rotYLast() {
+            return origin.rotYLast();
+        }
+
+        @Override
+        public double rotZLast() {
+            return origin.rotZLast();
+        }
+
+        @Override
+        public boolean isRotated() {
+            return true;
+        }
+
+        @Override
+        public void offX(double value) {
+            origin.offX(value);
+        }
+
+        @Override
+        public void offY(double value) {
+            origin.offY(value);
+        }
+
+        @Override
+        public void offZ(double value) {
+            origin.offZ(value);
+        }
+
+        @Override
+        public void off(double x, double y, double z) {
+            origin.off(x, y, z);
+        }
+
+        @Override
+        public void rotX(double value) {
+            origin.rotX(value);
+        }
+
+        @Override
+        public void rotY(double value) {
+            origin.rotY(value);
+        }
+
+        @Override
+        public void rotZ(double value) {
+            origin.rotZ(value);
+        }
+
+        @Override
+        public void rot(double x, double y, double z) {
+            origin.rot(x, y, z);
+        }
+
+        @Override
+        public Vec3d deltaMovement() {
+            return origin.deltaMovement();
+        }
+
+        @Override
+        public void deltaMovement(Vec3d value) {
+            origin.deltaMovement(value);
+        }
+
+        @Override
+        public Vec3d center() {
+            return origin.center();
+        }
+
+        @Override
+        public void setCenter(Vec3d vec) {
+            origin.setCenter(vec);
+        }
+
+        @Override
+        public Matrix3 rotation() {
+            return origin.rotation();
+        }
+
+        @Override
+        public Matrix3 rotationInv() {
+            return origin.rotationInv();
+        }
+
+        @Override
+        public Vec3d translation() {
+            return origin.translation();
+        }
+
+        @Override
+        public void tick() {
+            origin.tick();
+        }
+
+        @Override
+        public IVecOrigin getParent() {
+            return origin.getParent();
+        }
+
+        @Override
+        public double translationCombined(Axis axis) {
+            return origin.translationCombined(axis);
+        }
+
+        @Override
+        public IVecOrigin copy() {
+            return new SableComposedOrigin(context, origin.copy());
+        }
     }
 }

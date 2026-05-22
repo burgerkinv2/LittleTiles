@@ -146,9 +146,9 @@ public abstract class LittleAnimationHandler extends LevelHandler {
                         if (context == null)
                             boxes.add(new OBB(bb, entity.getOrigin()));
                         else {
-                            AABB worldBox = entity.getOrigin().getAABB(asABB(bb)).toVanilla();
-                            AABB sableWorldBox = SableBridge.transformAABBToSubLevelWorld(context, worldBox);
-                            boxes.add(asABB(sableWorldBox == null ? worldBox : sableWorldBox));
+                            ABB sableBox = SableBridge.transformOBBToSubLevelWorld(context, asABB(bb), entity.getOrigin());
+                            if (sableBox != null)
+                                boxes.add(sableBox);
                         }
                     }
 

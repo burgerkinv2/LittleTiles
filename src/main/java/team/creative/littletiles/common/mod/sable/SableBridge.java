@@ -7,6 +7,8 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.fml.ModList;
+import team.creative.creativecore.common.util.math.box.ABB;
+import team.creative.creativecore.common.util.math.matrix.IVecOrigin;
 import team.creative.littletiles.LittleTiles;
 import team.creative.littletiles.common.level.little.LittleLevel;
 
@@ -76,6 +78,28 @@ public final class SableBridge {
         }
     }
 
+    public static Vec3 transformVectorToSubLevelWorld(Context context, Vec3 vector) {
+        if (!INSTALLED || context == null || vector == null)
+            return null;
+        try {
+            return SableBridgeImpl.transformVectorToSubLevelWorld(context, vector);
+        } catch (Throwable t) {
+            LittleTiles.LOGGER.debug("[sable] failed to transform vector to world: {}", t.toString());
+            return null;
+        }
+    }
+
+    public static Vec3 transformVectorToSubLevelLocal(Context context, Vec3 vector) {
+        if (!INSTALLED || context == null || vector == null)
+            return null;
+        try {
+            return SableBridgeImpl.transformVectorToSubLevelLocal(context, vector);
+        } catch (Throwable t) {
+            LittleTiles.LOGGER.debug("[sable] failed to transform vector to local: {}", t.toString());
+            return null;
+        }
+    }
+
     public static AABB transformAABBToSubLevelLocal(Context context, AABB box) {
         if (!INSTALLED || context == null || box == null)
             return null;
@@ -94,6 +118,17 @@ public final class SableBridge {
             return SableBridgeImpl.transformAABBToSubLevelWorld(context, box);
         } catch (Throwable t) {
             LittleTiles.LOGGER.debug("[sable] failed to transform box to world: {}", t.toString());
+            return null;
+        }
+    }
+
+    public static ABB transformOBBToSubLevelWorld(Context context, ABB box, IVecOrigin origin) {
+        if (!INSTALLED || context == null || box == null || origin == null)
+            return null;
+        try {
+            return SableBridgeImpl.transformOBBToSubLevelWorld(context, box, origin);
+        } catch (Throwable t) {
+            LittleTiles.LOGGER.debug("[sable] failed to transform oriented box to world: {}", t.toString());
             return null;
         }
     }
