@@ -1,3 +1,61 @@
+# LittleTiles fork build notes
+
+This branch is meant to be built inside the shared CreativeMD Forge workspace.
+
+1. Clone the Forge workspace:
+
+```powershell
+git clone https://github.com/CreativeMD/ForgeMods.git ForgeMods-1.21
+cd ForgeMods-1.21
+git checkout 1.21
+git submodule update --init
+```
+
+2. Replace the workspace `CreativeCore` and `LittleTiles` folders with the
+   matching forks for this branch. ForgeMods may already contain upstream
+   versions of those folders; use the forked checkouts instead.
+
+3. Keep `settings.gradle` including at least:
+
+```gradle
+include ':CreativeCore'
+include ':LittleTiles'
+```
+
+4. Add the local Sable compile-only jars. They are not downloaded by Gradle and
+   are not committed to this repository.
+
+Put these two files in `LittleTiles/libs`:
+
+```text
+sable-neoforge-1.21.1-1.1.3.jar
+sable-companion-common-1.21.1-1.6.0.jar
+```
+
+Put this file in `CreativeCore/libs`:
+
+```text
+sable-companion-common-1.21.1-1.6.0.jar
+```
+
+If all required Sable jars are stored in one external directory, pass that
+directory once:
+
+```powershell
+.\gradlew.bat :LittleTiles:build -PsableLibDir=F:/path/to/sable-jars
+```
+
+5. Build from the ForgeMods root:
+
+```powershell
+.\gradlew.bat :LittleTiles:build
+```
+
+The Sable jars are compile-only. They are used to compile optional Sable
+compatibility code and are not bundled into the LittleTiles jar.
+
+## Original README
+
 # LittleTiles
 
 ***This mod allows you to build anything you want. It adds a way to add more detail to everything. You can hammer blocks into tiles which can be 4096 (or even more) times smaller than an ordinary minecraft block. You can combine your tiles together to create doors, chairs, ladders, no-clip, storage and any kind of furniture structure. There are endless possibilities as shown in the [trailer]. So [download this mod] and start to go crazy (and maybe post some pics of your work).***

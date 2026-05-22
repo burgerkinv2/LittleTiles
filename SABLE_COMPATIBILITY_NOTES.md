@@ -9,10 +9,10 @@ assembly movement, neighbor updates, collision, and Sable entity lifetime rules.
 ## Dependency model
 
 The build uses local Sable jars as compile-only dependencies. By default Gradle
-looks in `libs/sable`:
+looks in `libs`:
 
 ```gradle
-def sableLibDir = file(findProperty("sableLibDir") ?: "libs/sable")
+def sableLibDir = file(findProperty("sableLibDir") ?: "libs")
 compileOnly files(
     "${sableLibDir}/sable-neoforge-1.21.1-1.1.3.jar",
     "${sableLibDir}/sable-companion-common-1.21.1-1.6.0.jar"
@@ -21,7 +21,7 @@ compileOnly files(
 
 These jars are not committed to the repository and are not bundled by
 LittleTiles. A developer building this branch should place the two jars in
-`libs/sable`, or pass a different local directory with
+`libs`, or pass a different local directory with
 `-PsableLibDir=F:/path/to/sable-jars`. This keeps the build offline without
 redistributing Sable's full jar from the LittleTiles repository.
 
