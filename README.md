@@ -1,4 +1,7 @@
-# LittleTiles fork build notes
+> [!IMPORTANT]
+> VIBECODING PROJECT
+
+# How to build this fork
 
 This branch is meant to be built inside the shared CreativeMD Forge workspace.
 
@@ -54,6 +57,13 @@ directory once:
 The Sable jars are compile-only. They are used to compile optional Sable
 compatibility code and are not bundled into the LittleTiles jar.
 
+Thanks to CreativeMd make this great mod
+
+Special thanks to:  
+   glm5.1 for very first try.  
+   opus 4.6/7 for all basic work.  
+   deepseek v4 flash for find and resolve critical issue.  
+   codex5.5 for animation fix and whole refactor.  
 ## Original README
 
 # LittleTiles
