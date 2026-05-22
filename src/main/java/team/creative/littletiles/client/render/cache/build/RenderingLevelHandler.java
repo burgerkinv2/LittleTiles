@@ -11,6 +11,7 @@ import team.creative.creativecore.common.level.ISubLevel;
 import team.creative.littletiles.client.level.little.FakeClientLevel;
 import team.creative.littletiles.client.mod.sodium.SodiumManager;
 import team.creative.littletiles.client.render.cache.pipeline.LittleRenderPipelineType;
+import team.creative.littletiles.client.render.entity.LittleAnimationRenderManager;
 import team.creative.littletiles.client.render.mc.RenderChunkExtender;
 import team.creative.littletiles.client.render.mc.ViewAreaExtender;
 import team.creative.littletiles.common.block.entity.BETiles;
@@ -112,12 +113,13 @@ public abstract class RenderingLevelHandler {
     
     public static RenderingLevelHandler of(Level level) {
         if (SodiumManager.installed())
-            if (level instanceof LittleLevel l && l.getRenderManager().isSmall())
+            if (level instanceof LittleLevel l && l.getRenderManager().isSmall()) {
+                if (l.getRenderManager() instanceof LittleAnimationRenderManager)
+                    return ANIMATION;
                 if (l instanceof ISubLevel s && s.getParent() instanceof FakeClientLevel)
                     return ANIMATION;
-                else
-                    return SodiumManager.RENDERING_ANIMATION;
-            else
+                return SodiumManager.RENDERING_ANIMATION;
+            } else
                 return SodiumManager.RENDERING_LEVEL;
         if (level instanceof LittleLevel l)
             return l.getRenderManager().isSmall() ? ANIMATION : ENTITY;
