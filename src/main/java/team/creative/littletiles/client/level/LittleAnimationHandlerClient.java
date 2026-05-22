@@ -414,7 +414,7 @@ public class LittleAnimationHandlerClient extends LittleAnimationHandler impleme
                 SableClientBridge.setupVanillaRenderShader(context, shaderinstance, true);
             animation.getRenderManager().renderChunkLayer(layer, pose, renderCam.x, renderCam.y, renderCam.z, projectionMatrix, offset);
             if (context != null)
-                SableClientBridge.resetVanillaRenderShader(shaderinstance, false);
+                SableClientBridge.resetVanillaRenderShader(shaderinstance, true);
             pose.popPose();
         }
 
