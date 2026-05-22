@@ -470,7 +470,9 @@ public class BlockTile extends BaseEntityBlock implements LittlePhysicBlock, Sim
     
     @OnlyIn(Dist.CLIENT)
     public InteractionResult useClient(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult result) {
-        LittleTileContext context = LittleTileContext.selectFocused(level, pos, player);
+        LittleTileContext context = SableClientBridge.selectFocusedWithRenderPose(level, pos, player, TickUtils.getFrameTime(player.level()));
+        if (context == null)
+            context = LittleTileContext.selectFocused(level, pos, player);
         if (context.isComplete() && LittleTilesClient.INTERACTION.can()) {
             InteractionResult inter = LittleTilesClient.ACTION_HANDLER.execute(new LittleActionActivated(level, pos, player));
             if (inter != InteractionResult.PASS && LittleTilesClient.INTERACTION.start(true))
