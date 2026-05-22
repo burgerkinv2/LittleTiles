@@ -79,6 +79,7 @@
         "sodium.ChunkMeshBufferBuilderAccessor",
         "sodium.DefaultChunkRendererMixin",
         "sodium.SodiumWorldRendererAccessor",
+        "sodium.SodiumWorldRendererMixin",
         "sodium.GlBufferMixin",
         "sodium.GlBufferSegmentAccessor",
         "sodium.GLRenderDeviceAccessor",

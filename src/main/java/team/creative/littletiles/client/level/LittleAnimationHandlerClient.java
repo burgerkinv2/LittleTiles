@@ -64,23 +64,27 @@ import team.creative.creativecore.common.util.math.utils.BooleanUtils;
 import team.creative.creativecore.common.util.type.itr.FilterIterator;
 import team.creative.littletiles.LittleTiles;
 import team.creative.littletiles.api.client.entity.LevelTransitionListener;
+import team.creative.littletiles.client.mod.sable.SableClientBridge;
 import team.creative.littletiles.client.mod.sodium.SodiumManager;
+import team.creative.littletiles.client.render.entity.LittleAnimationRenderManager;
 import team.creative.littletiles.client.render.level.LittleRenderChunk;
 import team.creative.littletiles.client.render.level.RenderUploader;
 import team.creative.littletiles.common.block.mc.BlockTile;
 import team.creative.littletiles.common.entity.LittleEntity;
 import team.creative.littletiles.common.level.handler.LittleAnimationHandler;
 import team.creative.littletiles.common.math.vec.LittleHitResult;
+import team.creative.littletiles.common.mod.sable.SableBridge;
+import team.creative.littletiles.common.mod.sable.SableBridge.Context;
 import team.creative.littletiles.mixin.client.render.GameRendererAccessor;
 import team.creative.littletiles.mixin.common.entity.EntityAccessor;
 
 @OnlyIn(Dist.CLIENT)
 public class LittleAnimationHandlerClient extends LittleAnimationHandler implements Iterable<LittleEntity> {
-    
+
     private static Minecraft mc = Minecraft.getInstance();
     private static final int LONG_TICK_INTERVAL = 40;
     public static final int MAX_INTERVALS_WAITING = 2;
-    
+
     private final HashMap<UUID, EntityTransitionHolder> transitions = new HashMap<>();
     private final PriorityBlockingQueue<LittleRenderChunk.CompileTask> toBatchHighPriority = Queues.newPriorityBlockingQueue();
     private final Queue<LittleRenderChunk.CompileTask> toBatchLowPriority = Queues.newLinkedBlockingDeque();
@@ -93,17 +97,17 @@ public class LittleAnimationHandlerClient extends LittleAnimationHandler impleme
     private final ProcessorMailbox<Runnable> mailbox;
     private final Executor executor;
     public SectionCompiler sectionCompiler;
-    
+
     private int longTickCounter = LONG_TICK_INTERVAL;
     public int longTickIndex = Integer.MIN_VALUE;
-    
+
     public LittleAnimationHandlerClient(Level level) {
         super(level);
         NeoForge.EVENT_BUS.register(this);
         int threadCount = LittleTiles.CONFIG.rendering.entityCacheBuildThreads;
         this.fixedBuffers = mc.renderBuffers().fixedBufferPack();
         List<SectionBufferBuilderPack> list = Lists.newArrayListWithExpectedSize(threadCount);
-        
+
         try {
             for (int i = 0; i < threadCount; i++)
                 list.add(new SectionBufferBuilderPack());
@@ -112,17 +116,17 @@ public class LittleAnimationHandlerClient extends LittleAnimationHandler impleme
             int newSize = Math.min(list.size() * 2 / 3, list.size() - 1);
             for (int i = 0; i < newSize; i++)
                 list.remove(list.size() - 1);
-            
+
             System.gc();
         }
-        
+
         this.bufferPool = mc.renderBuffers().sectionBufferPool();
         this.executor = Util.backgroundExecutor();
         this.mailbox = ProcessorMailbox.create(executor, "Chunk Renderer");
         this.mailbox.tell(this::runTask);
         this.sectionCompiler = new SectionCompiler(mc.getBlockRenderer(), mc.getBlockEntityRenderDispatcher());
     }
-    
+
     public boolean checkInTransition(Entity entity) {
         if (transitions.containsKey(entity.getUUID())) {
             ((EntityAccessor) entity).callUnsetRemoved();
@@ -130,28 +134,28 @@ public class LittleAnimationHandlerClient extends LittleAnimationHandler impleme
         }
         return false;
     }
-    
+
     public Entity pollEntityInTransition(ClientboundAddEntityPacket packet) {
         EntityTransitionHolder holder = transitions.get(packet.getUUID());
         if (holder == null)
             return null;
-        
+
         Entity entity = holder.entity;
         Level oldLevel = entity.level();
         if (entity instanceof LevelTransitionListener listener)
             listener.prepareChangeLevel(oldLevel, holder.newLevel);
-        
+
         ((EntityAccessor) entity).callSetLevel(holder.newLevel);
         transitions.remove(packet.getUUID());
         if (entity instanceof LevelTransitionListener listener)
             listener.changedLevel(oldLevel, holder.newLevel);
         return entity;
     }
-    
+
     public void queueEntityForTransition(Entity entity, Level newLevel) {
         transitions.put(entity.getUUID(), new EntityTransitionHolder(entity, newLevel, longTickIndex + MAX_INTERVALS_WAITING));
     }
-    
+
     private void runTask() {
         if (!closed && !this.bufferPool.isEmpty()) {
             LittleRenderChunk.CompileTask task = this.pollTask();
@@ -169,7 +173,7 @@ public class LittleAnimationHandlerClient extends LittleAnimationHandler impleme
                                 pack.clearAll();
                             else
                                 pack.discardAll();
-                            
+
                             this.bufferPool.release(pack);
                             this.runTask();
                         });
@@ -177,7 +181,7 @@ public class LittleAnimationHandlerClient extends LittleAnimationHandler impleme
             }
         }
     }
-    
+
     @Nullable
     private LittleRenderChunk.CompileTask pollTask() {
         if (this.highPriorityQuota <= 0) {
@@ -187,43 +191,43 @@ public class LittleAnimationHandlerClient extends LittleAnimationHandler impleme
                 return task;
             }
         }
-        
+
         LittleRenderChunk.CompileTask task2 = this.toBatchHighPriority.poll();
         if (task2 != null) {
             --this.highPriorityQuota;
             return task2;
         }
-        
+
         this.highPriorityQuota = 2;
         return this.toBatchLowPriority.poll();
     }
-    
+
     public String getStats() {
         return String.format(Locale.ROOT, "pC: %03d, pU: %02d, aB: %02d", this.toBatchCount, this.toUpload.size(), this.bufferPool.getFreeBufferCount());
     }
-    
+
     public int getToBatchCount() {
         return this.toBatchCount;
     }
-    
+
     public int getToUpload() {
         return this.toUpload.size();
     }
-    
+
     public int getFreeBufferCount() {
         return this.bufferPool.getFreeBufferCount();
     }
-    
+
     public void uploadAllPendingUploads() {
         Runnable runnable;
         while ((runnable = this.toUpload.poll()) != null)
             runnable.run();
     }
-    
+
     public void blockUntilClear() {
         this.clearBatchQueue();
     }
-    
+
     public void schedule(LittleRenderChunk.CompileTask task) {
         this.mailbox.tell(() -> {
             if (task.isHighPriority)
@@ -234,7 +238,7 @@ public class LittleAnimationHandlerClient extends LittleAnimationHandler impleme
             this.runTask();
         });
     }
-    
+
     public CompletableFuture<Void> uploadChunkLayer(MeshData rendered, VertexBuffer buffer) {
         return this.closed ? CompletableFuture.completedFuture(null) : CompletableFuture.runAsync(() -> {
             if (!buffer.isInvalid()) {
@@ -244,7 +248,7 @@ public class LittleAnimationHandlerClient extends LittleAnimationHandler impleme
             }
         }, this.toUpload::add);
     }
-    
+
     public CompletableFuture<Void> uploadSectionIndexBuffer(ByteBufferBuilder.Result result, VertexBuffer buffer) {
         return this.closed ? CompletableFuture.completedFuture(null) : CompletableFuture.runAsync(() -> {
             if (buffer.isInvalid()) {
@@ -256,51 +260,51 @@ public class LittleAnimationHandlerClient extends LittleAnimationHandler impleme
             }
         }, this.toUpload::add);
     }
-    
+
     private void clearBatchQueue() {
         while (!this.toBatchHighPriority.isEmpty()) {
             LittleRenderChunk.CompileTask task = this.toBatchHighPriority.poll();
             if (task != null)
                 task.cancel();
         }
-        
+
         while (!this.toBatchLowPriority.isEmpty()) {
             LittleRenderChunk.CompileTask task1 = this.toBatchLowPriority.poll();
             if (task1 != null)
                 task1.cancel();
         }
-        
+
         this.toBatchCount = 0;
     }
-    
+
     public boolean isQueueEmpty() {
         return this.toBatchCount == 0 && this.toUpload.isEmpty();
     }
-    
+
     public void dispose() {
         this.closed = true;
         this.clearBatchQueue();
         this.uploadAllPendingUploads();
     }
-    
+
     public void allChanged() {
         this.sectionCompiler = new SectionCompiler(mc.getBlockRenderer(), mc.getBlockEntityRenderDispatcher());
         for (LittleEntity animation : entities)
             if (animation.hasLoaded())
                 animation.getRenderManager().allChanged();
     }
-    
+
     @Override
     public synchronized Iterator<LittleEntity> iterator() {
         return new FilterIterator<>(entities, x -> x.hasLoaded() && BooleanUtils.isTrue(x.getRenderManager().isInSight));
     }
-    
+
     public void needsUpdate() {
         for (LittleEntity animation : entities)
             if (animation.hasLoaded())
                 animation.getRenderManager().needsFullRenderChunkUpdate = true;
     }
-    
+
     public void setupRender(Camera camera, Frustum frustum, boolean capturedFrustum, boolean spectator) {
         mc.getProfiler().push("setup_animation_render");
         for (LittleEntity animation : entities)
@@ -308,7 +312,7 @@ public class LittleAnimationHandlerClient extends LittleAnimationHandler impleme
                 animation.getRenderManager().setupRender(camera, frustum, capturedFrustum, spectator);
         mc.getProfiler().pop();
     }
-    
+
     protected void longTick() {
         if (!transitions.isEmpty())
             for (Iterator<EntityTransitionHolder> iterator = transitions.values().iterator(); iterator.hasNext();) {
@@ -318,59 +322,118 @@ public class LittleAnimationHandlerClient extends LittleAnimationHandler impleme
             }
         RenderUploader.longTick(longTickIndex);
     }
-    
+
     @Override
     public void tick() {
         super.tick();
-        
+
         longTickCounter--;
         if (longTickCounter <= 0) {
             longTickCounter = LONG_TICK_INTERVAL;
             longTick();
             longTickIndex++;
         }
-        
+
     }
-    
+
     public void compileSections(Camera camera) {
         mc.getProfiler().push("compile_animation_chunks");
-        
+
         Runnable run;
         while ((run = this.toUpload.poll()) != null)
             run.run();
-        
+
         for (LittleEntity animation : entities)
             if (animation.hasLoaded())
                 animation.getRenderManager().compileSections(camera);
-            
+
         mc.getProfiler().pop();
     }
-    
+
     public void resortTransparency(RenderType layer, double x, double y, double z) {
         for (LittleEntity animation : entities)
             if (animation.hasLoaded())
                 animation.getRenderManager().resortTransparency(layer, x, y, z);
     }
-    
+
     public void renderBlockEntitiesAndDestruction(PoseStack pose, Frustum frustum, float frameTime) {
         MultiBufferSource bufferSource = mc.renderBuffers().bufferSource();
-        
+
         Vec3 cam = mc.gameRenderer.getMainCamera().getPosition();
         for (LittleEntity animation : this)
             animation.getRenderManager().renderBlockEntitiesAndDestruction(pose, frustum, cam, frameTime, bufferSource);
-        
+
         for (LittleEntity animation : entities)
             if (animation.hasLoaded())
                 animation.getRenderManager().renderGlobalEntities(pose, frustum, cam, frameTime, bufferSource);
     }
-    
+
+    public boolean hasVanillaAnimationRenderers() {
+        for (LittleEntity animation : entities)
+            if (animation.hasLoaded() && animation.getRenderManager() instanceof LittleAnimationRenderManager && SableBridge.findContext(animation.level(), animation.blockPosition()) != null)
+                return true;
+        return false;
+    }
+
+    public void renderVanillaChunkLayer(RenderType layer, Matrix4f modelViewMatrix, Matrix4f projectionMatrix, double camX, double camY, double camZ, float partialTicks,
+            ShaderInstance shaderinstance) {
+        renderVanillaChunkLayer(layer, modelViewMatrix, projectionMatrix, camX, camY, camZ, partialTicks, shaderinstance, false);
+    }
+
+    public void renderSableVanillaChunkLayer(RenderType layer, Matrix4f modelViewMatrix, Matrix4f projectionMatrix, double camX, double camY, double camZ, float partialTicks,
+            ShaderInstance shaderinstance) {
+        renderVanillaChunkLayer(layer, modelViewMatrix, projectionMatrix, camX, camY, camZ, partialTicks, shaderinstance, true);
+    }
+
+    private void renderVanillaChunkLayer(RenderType layer, Matrix4f modelViewMatrix, Matrix4f projectionMatrix, double camX, double camY, double camZ, float partialTicks,
+            ShaderInstance shaderinstance, boolean sableOnly) {
+        PoseStack pose = new PoseStack();
+        pose.last().pose().set(modelViewMatrix);
+
+        Uniform offset = shaderinstance.CHUNK_OFFSET;
+        Vec3 cam = new Vec3(camX, camY, camZ);
+        Iterable<LittleEntity> animations = sableOnly ? entities : this;
+
+        for (LittleEntity animation : animations) {
+            if (!animation.hasLoaded())
+                continue;
+            if (!(animation.getRenderManager() instanceof LittleAnimationRenderManager))
+                continue;
+
+            Context context = SableBridge.findContext(animation.level(), animation.blockPosition());
+            if (sableOnly && context == null)
+                continue;
+
+            pose.pushPose();
+            Vec3 renderCam = animation.getRenderManager().setupRendering(pose, cam, partialTicks);
+            if (shaderinstance.MODEL_VIEW_MATRIX != null) {
+                shaderinstance.MODEL_VIEW_MATRIX.set(pose.last().pose());
+                shaderinstance.MODEL_VIEW_MATRIX.upload();
+            }
+            if (context != null)
+                SableClientBridge.setupVanillaRenderShader(context, shaderinstance, true);
+            animation.getRenderManager().renderChunkLayer(layer, pose, renderCam.x, renderCam.y, renderCam.z, projectionMatrix, offset);
+            if (context != null)
+                SableClientBridge.resetVanillaRenderShader(shaderinstance, false);
+            pose.popPose();
+        }
+
+        if (offset != null)
+            offset.set(0F, 0F, 0F);
+        if (shaderinstance.MODEL_VIEW_MATRIX != null) {
+            shaderinstance.MODEL_VIEW_MATRIX.set(modelViewMatrix);
+            shaderinstance.MODEL_VIEW_MATRIX.upload();
+        }
+        VertexBuffer.unbind();
+    }
+
     @SubscribeEvent
     public void renderChunkLayer(RenderLevelStageEvent event) {
         if (SodiumManager.installed())
             return;
-        
+
         RenderType layer = null;
-        
+
         if (event.getStage() == Stage.AFTER_SOLID_BLOCKS)
             layer = RenderType.solid();
         else if (event.getStage() == Stage.AFTER_CUTOUT_BLOCKS)
@@ -381,48 +444,30 @@ public class LittleAnimationHandlerClient extends LittleAnimationHandler impleme
             layer = RenderType.translucent();
         else if (event.getStage() == Stage.AFTER_TRIPWIRE_BLOCKS)
             layer = RenderType.tripwire();
-        
+
         if (layer == null)
             return;
-        Vec3 cam = mc.gameRenderer.getMainCamera().getPosition();
-        
-        PoseStack pose = event.getPoseStack();
-        Matrix4f projectionMatrix = event.getProjectionMatrix();
-        pose.pushPose();
-        pose.mulPose(event.getModelViewMatrix());
-        
         ShaderInstance shaderinstance = RenderSystem.getShader();
-        RenderSystem.setupShaderLights(shaderinstance);
-        shaderinstance.setDefaultUniforms(VertexFormat.Mode.QUADS, pose.last().pose(), projectionMatrix, mc.getWindow());
+        if (shaderinstance == null)
+            return;
+
+        Matrix4f modelViewMatrix = new Matrix4f(event.getModelViewMatrix());
+        Matrix4f projectionMatrix = event.getProjectionMatrix();
+        shaderinstance.setDefaultUniforms(VertexFormat.Mode.QUADS, modelViewMatrix, projectionMatrix, mc.getWindow());
         shaderinstance.apply();
-        
-        Uniform offset = RenderSystem.getShader().CHUNK_OFFSET;
+
         float partialTicks = mc.getTimer().getGameTimeDeltaPartialTick(false);
-        for (LittleEntity animation : this) {
-            pose.pushPose();
-            animation.getOrigin().setupRendering(pose, cam.x, cam.y, cam.z, partialTicks);
-            if (shaderinstance.MODEL_VIEW_MATRIX != null)
-                shaderinstance.MODEL_VIEW_MATRIX.set(pose.last().pose());
-            shaderinstance.apply();
-            animation.getRenderManager().renderChunkLayer(layer, pose, cam.x, cam.y, cam.z, projectionMatrix, offset);
-            pose.popPose();
-        }
-        
-        pose.popPose();
-        if (offset != null)
-            offset.set(0F, 0F, 0F);
-        
-        shaderinstance.clear();
-        VertexBuffer.unbind();
+        renderVanillaChunkLayer(layer, modelViewMatrix, projectionMatrix, mc.gameRenderer.getMainCamera().getPosition().x, mc.gameRenderer.getMainCamera().getPosition().y, mc
+                .gameRenderer.getMainCamera().getPosition().z, partialTicks, shaderinstance);
     }
-    
+
     @SubscribeEvent
     public void renderEnd(RenderFrameEvent.Post event) {
         for (LittleEntity animation : entities)
             if (animation.hasLoaded())
                 animation.getRenderManager().isInSight = null;
     }
-    
+
     @Override
     public void unload() {
         super.unload();
@@ -430,7 +475,7 @@ public class LittleAnimationHandlerClient extends LittleAnimationHandler impleme
         RenderUploader.unload();
         NeoForge.EVENT_BUS.unregister(this);
     }
-    
+
     @Override
     protected void tickEntity(LittleEntity entity) {
         if (!entity.hasLoaded())
@@ -438,11 +483,11 @@ public class LittleAnimationHandlerClient extends LittleAnimationHandler impleme
         entity.getRenderManager().clientTick();
         super.tickEntity(entity);
     }
-    
+
     private boolean shouldRenderBlockOutline() {
         if (!((GameRendererAccessor) mc.gameRenderer).getRenderBlockOutline() || !(mc.hitResult instanceof LittleHitResult))
             return false;
-        
+
         LittleHitResult result = (LittleHitResult) mc.hitResult;
         Entity entity = mc.getCameraEntity();
         boolean flag = entity instanceof Player && !mc.options.hideGui;
@@ -459,20 +504,20 @@ public class LittleAnimationHandlerClient extends LittleAnimationHandler impleme
                 }
             }
         }
-        
+
         return flag;
     }
-    
+
     @SubscribeEvent
     public void tick(RenderLevelStageEvent event) {
         if (event.getStage() != Stage.AFTER_SKY)
             return;
-        
+
         if (!shouldRenderBlockOutline())
             return;
-        
+
         LittleHitResult result = (LittleHitResult) mc.hitResult;
-        
+
         PoseStack pose = event.getPoseStack();
         pose.pushPose();
         RenderSystem.applyModelViewMatrix();
@@ -481,13 +526,13 @@ public class LittleAnimationHandlerClient extends LittleAnimationHandler impleme
         VertexConsumer vertexconsumer2 = mc.renderBuffers().bufferSource().getBuffer(RenderType.lines());
         LittleEntity entity = result.getHolder();
         Vec3 position = mc.gameRenderer.getMainCamera().getPosition();
-        entity.getOrigin().setupRendering(event.getPoseStack(), position.x, position.y, position.z, event.getPartialTick().getGameTimeDeltaPartialTick(false));
+        Vec3 renderCam = entity.getRenderManager().setupRendering(event.getPoseStack(), position, event.getPartialTick().getGameTimeDeltaPartialTick(false));
         RenderSystem.enableDepthTest();
-        
-        double x = pos.getX() - position.x();
-        double y = pos.getY() - position.y();
-        double z = pos.getZ() - position.z();
-        
+
+        double x = pos.getX() - renderCam.x();
+        double y = pos.getY() - renderCam.y();
+        double z = pos.getZ() - renderCam.z();
+
         if (!state.isAir() && this.level.getWorldBorder().isWithinBounds(pos)) {
             PoseStack.Pose posestack$pose = event.getPoseStack().last();
             VoxelShape shape;
@@ -495,7 +540,7 @@ public class LittleAnimationHandlerClient extends LittleAnimationHandler impleme
                 shape = block.getSelectionShape(result.level, pos);
             else
                 shape = state.getShape(result.level, pos, CollisionContext.of(mc.cameraEntity));
-            
+
             shape.forAllEdges((x1, y1, z1, x2, y2, z2) -> {
                 float f = (float) (x2 - x1);
                 float f1 = (float) (y2 - y1);
@@ -510,9 +555,9 @@ public class LittleAnimationHandlerClient extends LittleAnimationHandler impleme
                     f1, f2);
             });
         }
-        
+
         pose.popPose();
     }
-    
+
     public static record EntityTransitionHolder(Entity entity, Level newLevel, int index) {}
 }

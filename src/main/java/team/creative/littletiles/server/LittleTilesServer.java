@@ -4,7 +4,6 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
@@ -20,18 +19,18 @@ import team.creative.littletiles.server.level.handler.LittleActionHandlerServer;
 import team.creative.littletiles.server.level.util.NeighborUpdateOrganizer;
 
 public class LittleTilesServer {
-    
+
     public static NeighborUpdateOrganizer NEIGHBOR;
     public static LittleInteractionHandlerServer INTERACTION;
-    
+
     public static void init(FMLCommonSetupEvent event) {
         NEIGHBOR = new NeighborUpdateOrganizer();
         INTERACTION = new LittleInteractionHandlerServer();
         NeoForge.EVENT_BUS.addListener(LittleActionHandlerServer::playerLoggedIn);
     }
-    
+
     /** activates blocks and animations from littletiles on server side
-     * 
+     *
      * @param player
      *            entity performing the action
      * @param pos
@@ -40,27 +39,24 @@ public class LittleTilesServer {
      *            end of the player ray
      * @return whether something has been activated or not */
     public static boolean playerRightClickServer(ServerPlayer player, Vec3 pos, Vec3 look) {
-        AABB box = new AABB(pos, look);
         Level level = player.level();
-        
+
         LittleEntity pointedEntity = null;
-        
+
         LittleAnimationHandler handler = LittleTiles.ANIMATION_HANDLERS.get(level);
-        
+
         BlockHitResult result = level.clip(new ClipContext(pos, look, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, player));
         double distance = result != null ? pos.distanceTo(result.getLocation()) : 0;
-        for (LittleEntity animation : handler.find(box)) {
-            LittleHitResult tempResult = handler.getHit(pos, look, pos.distanceTo(look));
-            if (!tempResult.isBlock())
-                continue;
-            double tempDistance = pos.distanceTo(animation.getOrigin().transformPointToWorld(tempResult.asBlockHit().getLocation()));
+        LittleHitResult tempResult = handler.getHit(pos, look, pos.distanceTo(look));
+        if (tempResult != null && tempResult.isBlock()) {
+            double tempDistance = pos.distanceTo(tempResult.getRealLocation());
             if (result == null || tempDistance < distance) {
                 result = tempResult.asBlockHit();
                 distance = tempDistance;
-                pointedEntity = animation;
+                pointedEntity = tempResult.getHolder();
             }
         }
-        
+
         if (pointedEntity == null) {
             if (result instanceof BlockHitResult) {
                 BlockState state = level.getBlockState(result.getBlockPos());
@@ -71,9 +67,9 @@ public class LittleTilesServer {
         } else
             return LittleActionHandlerServer.execute(player, new LittleActionActivated((Level) pointedEntity.getSubLevel(), result.getBlockPos(), pos, look, false))
                     .consumesAction();
-        
+
         return false;
-        
+
     }
-    
+
 }
