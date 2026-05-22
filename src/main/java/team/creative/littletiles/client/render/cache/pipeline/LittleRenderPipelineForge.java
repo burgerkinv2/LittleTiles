@@ -38,7 +38,6 @@ import team.creative.littletiles.client.render.cache.buffer.BufferHolder;
 import team.creative.littletiles.client.render.cache.build.RenderingBlockContext;
 import team.creative.littletiles.client.render.tile.LittleRenderBox;
 import team.creative.littletiles.common.level.little.LittleSubLevel;
-import team.creative.littletiles.common.mod.sable.SableBridge;
 import team.creative.littletiles.mixin.client.render.BufferBuilderAccessor;
 
 @OnlyIn(Dist.CLIENT)
@@ -72,7 +71,7 @@ public class LittleRenderPipelineForge extends LittleRenderPipeline {
         boolean smooth = Minecraft.useAmbientOcclusion() && data.state.getLightEmission(data.be.getLevel(), pos) == 0;
         QuadLighter lighter = smooth ? renderer.getSmoothLighter().get() : renderer.getFlatLighter().get();
         
-        boolean inSableSubLevel = SableBridge.isInSableSubLevel(data.be.getLevel(), pos) && SableClientBridge.isDynamicDirectionalShadingEnabled();
+        boolean inSableSubLevel = SableClientBridge.findRenderContext(data.be.getLevel(), pos) != null && SableClientBridge.isDynamicDirectionalShadingEnabled();
         BlockAndTintGetter lighterLevel = inSableSubLevel ? new ShadelessBlockAndTintGetter(renderLevel) : renderLevel;
         lighter.setup(lighterLevel, pos, data.state);
         

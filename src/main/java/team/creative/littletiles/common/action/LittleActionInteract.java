@@ -97,21 +97,13 @@ public abstract class LittleActionInteract<T> extends LittleAction<T> {
             
             level = (Level) animation.getSubLevel();
             if (!transformedCoordinates) {
+                transformThroughSable(animation.level(), animation.blockPosition());
                 transformedPos = animation.getOrigin().transformPointToFakeWorld(transformedPos);
                 transformedLook = animation.getOrigin().transformPointToFakeWorld(transformedLook);
                 transformedCoordinates = true;
             }
         } else if (!transformedCoordinates) {
-            var context = SableBridge.findContext(level, blockPos);
-            if (context != null) {
-                Vec3 localPos = SableBridge.transformPointToSubLevelLocal(context, transformedPos);
-                Vec3 localLook = SableBridge.transformPointToSubLevelLocal(context, transformedLook);
-                if (localPos != null && localLook != null) {
-                    transformedPos = localPos;
-                    transformedLook = localLook;
-                    transformedCoordinates = true;
-                }
-            }
+            transformedCoordinates = transformThroughSable(level, blockPos);
         }
         
         if (requiresBreakEvent() && !fireBlockBreakEvent(level, blockPos, source))
@@ -137,6 +129,19 @@ public abstract class LittleActionInteract<T> extends LittleAction<T> {
             onBlockEntityNotFound();
         return ignored();
         
+    }
+
+    private boolean transformThroughSable(Level level, BlockPos pos) {
+        var context = SableBridge.findContext(level, pos);
+        if (context == null)
+            return false;
+        Vec3 localPos = SableBridge.transformPointToSubLevelLocal(context, transformedPos);
+        Vec3 localLook = SableBridge.transformPointToSubLevelLocal(context, transformedLook);
+        if (localPos == null || localLook == null)
+            return false;
+        transformedPos = localPos;
+        transformedLook = localLook;
+        return true;
     }
     
     public BlockHitResult rayTrace(BETiles be, LittleTileContext tile, Vec3 pos, Vec3 look) {

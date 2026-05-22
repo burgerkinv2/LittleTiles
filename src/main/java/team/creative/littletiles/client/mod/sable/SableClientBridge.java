@@ -4,10 +4,12 @@ import com.mojang.blaze3d.vertex.PoseStack;
 
 import net.minecraft.client.renderer.ShaderInstance;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
+import team.creative.creativecore.common.level.ISubLevel;
 import team.creative.littletiles.LittleTiles;
 import team.creative.littletiles.common.block.little.tile.LittleTileContext;
 import team.creative.littletiles.common.mod.sable.SableBridge;
@@ -128,7 +130,7 @@ public final class SableClientBridge {
     public static LittleTileContext selectFocusedWithRenderPose(BlockGetter level, BlockPos pos, Player player, float partialTick) {
         if (!(level instanceof Level actualLevel) || player == null || pos == null || !SableBridge.isAvailable())
             return null;
-        Context context = SableBridge.findContext(actualLevel, pos);
+        Context context = findRenderContext(actualLevel, pos);
         if (context == null)
             return null;
         try {
@@ -137,6 +139,20 @@ public final class SableClientBridge {
             LittleTiles.LOGGER.debug("[sable] failed to select focused tile with render pose at {}: {}", pos, t.toString());
             return null;
         }
+    }
+
+    public static Context findRenderContext(Level level, BlockPos pos) {
+        if (!SableBridge.isAvailable() || level == null || pos == null)
+            return null;
+        Context context = SableBridge.findContext(level, pos);
+        if (context != null)
+            return context;
+        if (level instanceof ISubLevel subLevel) {
+            Entity holder = subLevel.getHolder();
+            if (holder != null)
+                return SableBridge.findContext(holder.level(), holder.blockPosition());
+        }
+        return null;
     }
 
     public static boolean tryMarkDirty(Context context, Level level, BlockPos pos) {

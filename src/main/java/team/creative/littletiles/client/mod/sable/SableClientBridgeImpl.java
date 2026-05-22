@@ -141,15 +141,19 @@ final class SableClientBridgeImpl {
         Vec3 view = player.getViewVector(partialTick);
         Vec3 look = eye.add(view.x * reach, view.y * reach, view.z * reach);
 
+        Pose3dc pose = ((ClientSubLevel) context.unwrap()).renderPose(partialTick);
+        if (pose == null)
+            return null;
+
+        eye = pose.transformPositionInverse(eye);
+        look = pose.transformPositionInverse(look);
+
         if (level != player.level() && level instanceof IOrientatedLevel orientated) {
             eye = orientated.getOrigin().transformPointToFakeWorld(eye);
             look = orientated.getOrigin().transformPointToFakeWorld(look);
         }
 
-        Pose3dc pose = ((ClientSubLevel) context.unwrap()).renderPose(partialTick);
-        Vec3 localEye = pose.transformPositionInverse(eye);
-        Vec3 localLook = pose.transformPositionInverse(look);
-        return be.getFocusedTile(localEye, localLook);
+        return be.getFocusedTile(eye, look);
     }
 
     static boolean tryMarkDirty(Context context, BlockPos pos) {
