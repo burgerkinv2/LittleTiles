@@ -8,16 +8,22 @@ assembly movement, neighbor updates, collision, and Sable entity lifetime rules.
 
 ## Dependency model
 
-The build currently uses local Sable jars as compile-only dependencies:
+The build uses local Sable jars as compile-only dependencies. By default Gradle
+looks in `libs/sable`:
 
 ```gradle
-compileOnly files('../CreativeCore/libs/sable-neoforge-1.21.1-1.1.3.jar')
-compileOnly files('../CreativeCore/libs/sable-companion-common-1.21.1-1.6.0.jar')
+def sableLibDir = file(findProperty("sableLibDir") ?: "libs/sable")
+compileOnly files(
+    "${sableLibDir}/sable-neoforge-1.21.1-1.1.3.jar",
+    "${sableLibDir}/sable-companion-common-1.21.1-1.6.0.jar"
+)
 ```
 
-These jars are not bundled by LittleTiles. A developer building this branch
-needs those jars at the expected path, or should replace them with equivalent
-published coordinates if Sable provides them.
+These jars are not committed to the repository and are not bundled by
+LittleTiles. A developer building this branch should place the two jars in
+`libs/sable`, or pass a different local directory with
+`-PsableLibDir=F:/path/to/sable-jars`. This keeps the build offline without
+redistributing Sable's full jar from the LittleTiles repository.
 
 Most runtime integration is isolated behind `SableBridge` and
 `SableClientBridge`. Normal LT call sites use those wrappers, while direct
