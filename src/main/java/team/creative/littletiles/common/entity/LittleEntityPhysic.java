@@ -25,6 +25,8 @@ import team.creative.creativecore.common.util.math.matrix.IVecOrigin;
 import team.creative.creativecore.common.util.math.vec.Vec3d;
 import team.creative.littletiles.LittleTiles;
 import team.creative.littletiles.common.level.little.LittleSubLevel;
+import team.creative.littletiles.common.mod.sable.SableBridge;
+import team.creative.littletiles.common.mod.sable.SableBridge.Context;
 import team.creative.littletiles.common.structure.animation.PhysicalState;
 import team.creative.littletiles.mixin.common.entity.EntityAccessor;
 
@@ -210,7 +212,15 @@ public abstract class LittleEntityPhysic<T extends LittleEntity<? extends Little
         
         noCollision = true;
         
-        List<Entity> entities = parent.getRealLevel().getEntities(parent, coordinator.computeSurroundingBox(bb).toVanilla(), NO_ANIMATION);
+        Context sableContext = SableBridge.findContext(parent.level(), parent.blockPosition());
+        AABB searchBox = coordinator.computeSurroundingBox(bb).toVanilla();
+        if (sableContext != null) {
+            AABB transformedSearchBox = SableBridge.transformAABBToSubLevelWorld(sableContext, searchBox);
+            if (transformedSearchBox != null)
+                searchBox = transformedSearchBox;
+        }
+
+        List<Entity> entities = parent.getRealLevel().getEntities(parent, searchBox, NO_ANIMATION);
         if (!entities.isEmpty()) {
             for (int i = 0; i < entities.size(); i++) {
                 Entity entity = entities.get(i);
@@ -220,6 +230,13 @@ public abstract class LittleEntityPhysic<T extends LittleEntity<? extends Little
                 
                 AABB entityBB = entity.getBoundingBox();
                 AABB originalBox = entity.getBoundingBox();
+                if (sableContext != null) {
+                    AABB localEntityBB = SableBridge.transformAABBToSubLevelLocal(sableContext, entityBB);
+                    if (localEntityBB == null)
+                        continue;
+                    entityBB = localEntityBB;
+                    originalBox = localEntityBB;
+                }
                 
                 Vec3d center = new Vec3d(entityBB.getCenter());
                 
@@ -353,6 +370,12 @@ public abstract class LittleEntityPhysic<T extends LittleEntity<? extends Little
                 
                 entity.setOldPosAndRot();
                 var moved = new Vec3(moveX, moveY, moveZ);
+                if (sableContext != null) {
+                    Vec3 transformedMoved = SableBridge.transformVectorToSubLevelWorld(sableContext, moved);
+                    if (transformedMoved == null)
+                        continue;
+                    moved = transformedMoved;
+                }
                 entity.move(MoverType.SELF, moved);
                 ((EntityAccessor) entity).setPushedByAnimationDelta(moved); // To be added later on
                 if (LittleTiles.CONFIG.general.enableCollisionMotion)
