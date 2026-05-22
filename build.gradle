@@ -52,12 +52,16 @@ runs {
     }
 }
 
+def sableLibDir = file(findProperty("sableLibDir") ?: "libs/sable")
+
 dependencies {
     implementation "net.neoforged:neoforge:${forge_version}"
     
     implementation project(':CreativeCore')
-    compileOnly files('../CreativeCore/libs/sable-neoforge-1.21.1-1.1.3.jar')
-    compileOnly files('../CreativeCore/libs/sable-companion-common-1.21.1-1.6.0.jar')
+    compileOnly files(
+        "${sableLibDir}/sable-neoforge-1.21.1-1.1.3.jar",
+        "${sableLibDir}/sable-companion-common-1.21.1-1.6.0.jar"
+    )
 }
 
 modDependencies = [
