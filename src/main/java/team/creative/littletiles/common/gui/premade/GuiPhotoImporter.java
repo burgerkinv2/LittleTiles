@@ -2,6 +2,8 @@ package team.creative.littletiles.common.gui.premade;
 
 import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.system.MemoryStack;
@@ -99,16 +101,22 @@ public class GuiPhotoImporter extends GuiLayer {
         
         GuiParent sizeRow = new GuiParent(GuiFlow.STACK_X);
         add(sizeRow);
-        sizeRow.add(new GuiLabeledControl("gui.photo_importer.width", new GuiCounter("width", 16, 1, Integer.MAX_VALUE)));
-        sizeRow.add(new GuiLabeledControl("gui.photo_importer.height", new GuiCounter("height", 16, 1, Integer.MAX_VALUE)));
+        GuiCounter width = new GuiCounter("width", 16, 1, Integer.MAX_VALUE);
+        width.textfield.setDim(26, 10);
+        GuiCounter height = new GuiCounter("height", 16, 1, Integer.MAX_VALUE);
+        height.textfield.setDim(26, 10);
+        sizeRow.add(new GuiLabeledControl("gui.photo_importer.width", width));
+        sizeRow.add(new GuiLabeledControl("gui.photo_importer.height", height));
         
         GuiParent optionRow = new GuiParent(GuiFlow.STACK_X);
         add(optionRow);
         optionRow.add(new GuiCheckBox("ignore_alpha", false).setTranslate("gui.photo_importer.ignore_alpha"));
         optionRow.add(new GuiCheckBox("keep_aspect", true).setTranslate("gui.photo_importer.keep_aspect"));
+        optionRow.add(new GuiLabeledControl("gui.photo_importer.scale", new GuiComboBox<ScalePreset>("scale", ScalePreset.FIT, new TextMapBuilder<ScalePreset>().addComponent(
+            ScalePreset.values(), x -> Component.literal(x.label)))));
         add(new GuiCheckBox("create_structure", true).setTranslate("gui.photo_importer.create_structure"));
         
-        add(new GuiLabeledControl("gui.grid", new GuiComboBox<LittleGrid>("grid", LittleTiles.CONFIG.build.get(getPlayer()).gridBuilder()).setExpandableX()));
+        add(new GuiLabeledControl("gui.grid", new GuiComboBox<LittleGrid>("grid", photoGridBuilder()).setExpandableX()));
         add(new GuiLabeledControl("gui.photo_importer.color_accuracy", new GuiSlider("color_accuracy", 1, 0, 1).setDim(80, 10)));
         
         GuiLeftRightBox actions = new GuiLeftRightBox();
@@ -126,6 +134,8 @@ public class GuiPhotoImporter extends GuiLayer {
                 updateSourceControls();
                 imageInfo = null;
             }
+            if (x.control.is("scale"))
+                applyScalePreset();
             if (!adjustingAspect && x.control.is("width") && get("keep_aspect", GuiCheckBox.class).value)
                 adjustHeightToAspect();
             if (!adjustingAspect && x.control.is("height") && get("keep_aspect", GuiCheckBox.class).value)
@@ -182,7 +192,7 @@ public class GuiPhotoImporter extends GuiLayer {
             if (image.getWidth() != width || image.getHeight() != height)
                 image = PhotoImporterReader.resize(image, width, height);
             IMPORT_PHOTO.send(PhotoImporterReader.toBlueprintContent(image, options()));
-            status("gui.photo_importer.status.imported", width * height);
+            status("gui.photo_importer.status.imported", (long) width * height);
         } catch (Exception e) {
             LittleTiles.LOGGER.warn("Could not import photo", e);
             status("gui.photo_importer.status.failed", e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage());
@@ -202,17 +212,20 @@ public class GuiPhotoImporter extends GuiLayer {
     
     private void autoScale() {
         try {
-            ImageInfo info = imageInfo();
-            int width = info.width();
-            int height = info.height();
-            int pixels = width * height;
-            if (pixels > DEFAULT_MAX_PIXELS) {
-                double scale = Math.sqrt(DEFAULT_MAX_PIXELS / (double) pixels);
-                width = Math.max(1, (int) Math.floor(width * scale));
-                height = Math.max(1, (int) Math.floor(height * scale));
-            }
-            setSizeFields(width, height);
-            status("gui.photo_importer.status.loaded", width, height);
+            int[] size = ScalePreset.FIT.size(imageInfo());
+            setSizeFields(size[0], size[1]);
+            status("gui.photo_importer.status.loaded", size[0], size[1]);
+        } catch (Exception e) {
+            status("gui.photo_importer.status.failed", e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage());
+        }
+    }
+
+    private void applyScalePreset() {
+        try {
+            GuiComboBox<ScalePreset> scale = get("scale");
+            int[] size = scale.selected(ScalePreset.FIT).size(imageInfo());
+            setSizeFields(size[0], size[1]);
+            status("gui.photo_importer.status.loaded", size[0], size[1]);
         } catch (Exception e) {
             status("gui.photo_importer.status.failed", e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage());
         }
@@ -261,7 +274,17 @@ public class GuiPhotoImporter extends GuiLayer {
     private PhotoImportOptions options() {
         GuiComboBox<LittleGrid> grid = get("grid");
         return new PhotoImportOptions(grid.selected(LittleGrid.overallDefault()), get("ignore_alpha", GuiCheckBox.class).value, get("create_structure", GuiCheckBox.class).value,
-            get("color_accuracy", GuiSlider.class).getValue(), DEFAULT_MAX_PIXELS, LittleTilesRegistry.CLEAN.value().defaultBlockState());
+            get("color_accuracy", GuiSlider.class).getValue(), LittleTilesRegistry.CLEAN.value().defaultBlockState());
+    }
+
+    private TextMapBuilder<LittleGrid> photoGridBuilder() {
+        List<LittleGrid> grids = new ArrayList<>();
+        for (int grid = 1; grid <= 256; grid *= 2) {
+            LittleGrid littleGrid = LittleGrid.tryGet(grid);
+            if (littleGrid != null)
+                grids.add(littleGrid);
+        }
+        return new TextMapBuilder<LittleGrid>().addComponent(grids, x -> Component.literal("" + x.count));
     }
     
     private BufferedImage readImage() throws IOException {
@@ -289,4 +312,30 @@ public class GuiPhotoImporter extends GuiLayer {
         }
     }
     
+    private enum ScalePreset {
+
+        FIT("Fit", -1),
+        FULL("100%", 1),
+        HALF("50%", 0.5),
+        QUARTER("25%", 0.25),
+        EIGHTH("12.5%", 0.125);
+
+        public final String label;
+        private final double scale;
+
+        private ScalePreset(String label, double scale) {
+            this.label = label;
+            this.scale = scale;
+        }
+
+        private int[] size(ImageInfo info) {
+            double scale = this.scale;
+            if (scale < 0) {
+                long pixels = (long) info.width() * info.height();
+                scale = pixels > DEFAULT_MAX_PIXELS ? Math.sqrt(DEFAULT_MAX_PIXELS / (double) pixels) : 1;
+            }
+            return new int[] { Math.max(1, (int) Math.floor(info.width() * scale)), Math.max(1, (int) Math.floor(info.height() * scale)) };
+        }
+    }
+
 }

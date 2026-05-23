@@ -60,9 +60,6 @@ public class PhotoImporterReader {
     
     public static LittleGroup toGroup(BufferedImage source, PhotoImportOptions options) {
         BufferedImage image = normalize(source);
-        if (image.getWidth() * image.getHeight() > options.maxPixels())
-            throw new IllegalArgumentException("image too large");
-        
         LittleGroup group = new LittleGroup();
         LittleElement element = new LittleElement(options.state() != null ? options.state() : LittleTilesRegistry.CLEAN.value().defaultBlockState(), ColorUtils.WHITE);
         
@@ -123,7 +120,7 @@ public class PhotoImporterReader {
     }
     
     public static PhotoImportOptions defaultOptions() {
-        return new PhotoImportOptions(team.creative.littletiles.common.grid.LittleGrid.overallDefault(), false, true, 1, 4096, Blocks.STONE.defaultBlockState());
+        return new PhotoImportOptions(team.creative.littletiles.common.grid.LittleGrid.overallDefault(), false, true, 1, Blocks.STONE.defaultBlockState());
     }
     
 }

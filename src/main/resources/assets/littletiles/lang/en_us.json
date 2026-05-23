@@ -43,6 +43,7 @@
     "gui.photo_importer.height": "Height",
     "gui.photo_importer.ignore_alpha": "Ignore Alpha",
     "gui.photo_importer.keep_aspect": "Keep Aspect Ratio",
+    "gui.photo_importer.scale": "Scale",
     "gui.photo_importer.create_structure": "Create Structure",
     "gui.photo_importer.color_accuracy": "Color Accuracy",
     "gui.photo_importer.read_size": "Read Size",
