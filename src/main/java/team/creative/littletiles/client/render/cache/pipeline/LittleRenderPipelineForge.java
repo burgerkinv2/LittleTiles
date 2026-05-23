@@ -11,6 +11,8 @@ import com.mojang.blaze3d.vertex.VertexFormat;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap.Entry;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.color.block.BlockColors;
+import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.block.model.BakedQuad;
 import net.minecraft.client.renderer.texture.OverlayTexture;
@@ -30,6 +32,7 @@ import team.creative.creativecore.common.util.type.map.ChunkLayerMap;
 import team.creative.creativecore.common.util.type.map.ChunkLayerMapList;
 import team.creative.creativecore.mixin.ForgeModelBlockRendererAccessor;
 import team.creative.littletiles.LittleTiles;
+import team.creative.littletiles.client.level.little.FakeClientLevel;
 import team.creative.littletiles.client.mod.sable.SableClientBridge;
 import team.creative.littletiles.client.mod.sable.ShadelessBlockAndTintGetter;
 import team.creative.littletiles.client.mod.sable.SubLevelNormalConsumer;
@@ -46,6 +49,7 @@ public class LittleRenderPipelineForge extends LittleRenderPipeline {
     private final ChunkLayerMap<ByteBufferBuilder> byteBuilder = new ChunkLayerMap<>();
     private final ChunkLayerMap<IntArrayList> indexes = new ChunkLayerMap<>(layer -> new IntArrayList());
     private final MutableBlockPos modelOffset = new MutableBlockPos();
+    private final QuadLighter fullbrightLighter = new FullbrightQuadLighter(MC.getBlockColors());
     
     private ByteBufferBuilder getOrCreate(RenderType layer) {
         ByteBufferBuilder buffer = byteBuilder.get(layer);
@@ -61,7 +65,9 @@ public class LittleRenderPipelineForge extends LittleRenderPipeline {
     
     @Override
     public void buildCache(PoseStack pose, ChunkLayerMap<BufferCache> buffers, RenderingBlockContext data, VertexFormat format, SingletonList<BakedQuad> bakedQuadWrapper) {
-        Level renderLevel = data.be.getLevel();
+        Level sourceLevel = data.be.getLevel();
+        boolean fullbright = sourceLevel instanceof LittleSubLevel sub && sub.getParent() instanceof FakeClientLevel;
+        Level renderLevel = sourceLevel;
         while (renderLevel instanceof LittleSubLevel sub && !sub.shouldUseLightingForRenderig())
             renderLevel = sub.getParent();
         
@@ -69,7 +75,7 @@ public class LittleRenderPipelineForge extends LittleRenderPipeline {
         
         ForgeModelBlockRendererAccessor renderer = (ForgeModelBlockRendererAccessor) MC.getBlockRenderer().getModelRenderer();
         boolean smooth = Minecraft.useAmbientOcclusion() && data.state.getLightEmission(data.be.getLevel(), pos) == 0;
-        QuadLighter lighter = smooth ? renderer.getSmoothLighter().get() : renderer.getFlatLighter().get();
+        QuadLighter lighter = fullbright ? fullbrightLighter : smooth ? renderer.getSmoothLighter().get() : renderer.getFlatLighter().get();
         
         boolean inSableSubLevel = SableClientBridge.findRenderContext(data.be.getLevel(), pos) != null && SableClientBridge.isDynamicDirectionalShadingEnabled();
         BlockAndTintGetter lighterLevel = inSableSubLevel ? new ShadelessBlockAndTintGetter(renderLevel) : renderLevel;
@@ -145,6 +151,26 @@ public class LittleRenderPipelineForge extends LittleRenderPipeline {
         clearIndexes();
         ((CreativeQuadLighter) lighter).setCustomTint(-1);
         lighter.reset();
+    }
+
+    private static class FullbrightQuadLighter extends QuadLighter {
+
+        protected FullbrightQuadLighter(BlockColors colors) {
+            super(colors);
+        }
+
+        @Override
+        protected void computeLightingAt(BlockAndTintGetter level, BlockPos pos, BlockState state) {}
+
+        @Override
+        protected float calculateBrightness(float[] position) {
+            return 1.0F;
+        }
+
+        @Override
+        protected int calculateLightmap(float[] position, byte[] normal) {
+            return LightTexture.FULL_BRIGHT;
+        }
     }
     
     @Override
