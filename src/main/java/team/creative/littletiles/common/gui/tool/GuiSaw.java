@@ -1,7 +1,6 @@
 package team.creative.littletiles.common.gui.tool;
 
 import net.minecraft.core.component.PatchedDataComponentMap;
-import team.creative.creativecore.common.gui.Align;
 import team.creative.creativecore.common.gui.control.collection.GuiComboBox;
 import team.creative.creativecore.common.gui.control.simple.GuiLabel;
 import team.creative.creativecore.common.gui.flow.GuiFlow;
@@ -14,7 +13,6 @@ public class GuiSaw extends GuiConfigureTool {
     public GuiSaw(ContainerSlotView view) {
         super("saw", 160, 80, view);
         flow = GuiFlow.STACK_Y;
-        align = Align.STRETCH;
         spacing = 4;
     }
 

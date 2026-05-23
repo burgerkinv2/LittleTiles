@@ -80,7 +80,7 @@ public class LittleActionSaw extends LittleActionInteract<Boolean> {
 
         LittleGrid usedGrid = grid != null && grid.count > context.parent.getGrid().count ? grid : context.parent.getGrid();
         LittleBoxesNoOverlap boxes = new LittleBoxesNoOverlap(context.parent.getPos(), usedGrid);
-        for (SawTarget target : targets(level, context, usedGrid))
+        for (SawTarget target : targets(level, context, facing, usedGrid))
             boxes.add(target.slice(facing, shrink, toLimit, usedGrid, context.parent.getPos()));
 
         LittleAction<Boolean> action = shrink ? new LittleActionDestroyBoxes(uuid, boxes) : new LittleActionPlace(PlaceAction.ABSOLUTE, PlacementPreview.load(uuid,
@@ -93,29 +93,36 @@ public class LittleActionSaw extends LittleActionInteract<Boolean> {
         return false;
     }
 
-    private Iterable<SawTarget> targets(Level level, LittleTileContext context, LittleGrid usedGrid) {
+    private Iterable<SawTarget> targets(Level level, LittleTileContext context, Facing facing, LittleGrid usedGrid) {
         if (mode == LittleSawMode.CONNECTED)
-            return connectedTargets(level, context, usedGrid);
+            return connectedTargets(level, context, facing, usedGrid);
         if (mode == LittleSawMode.SAME_TYPE)
-            return sameTypeTargets(context, usedGrid);
+            return sameTypeTargets(context, facing, usedGrid);
         return java.util.List.of(new SawTarget(context.parent, context.tile, convertBox(context.box, context.parent.getGrid(), usedGrid)));
     }
 
-    private Iterable<SawTarget> sameTypeTargets(LittleTileContext context, LittleGrid usedGrid) {
+    private Iterable<SawTarget> sameTypeTargets(LittleTileContext context, Facing facing, LittleGrid usedGrid) {
         java.util.List<SawTarget> targets = new java.util.ArrayList<>();
+        SawTarget start = new SawTarget(context.parent, context.tile, convertBox(context.box, context.parent.getGrid(), usedGrid));
+        int face = start.globalFace(facing, usedGrid, context.parent.getPos());
         for (LittleTile tile : context.parent)
             if (context.tile.is(tile))
-                for (LittleBox box : tile)
-                    targets.add(new SawTarget(context.parent, tile, convertBox(box, context.parent.getGrid(), usedGrid)));
+                for (LittleBox box : tile) {
+                    SawTarget target = new SawTarget(context.parent, tile, convertBox(box, context.parent.getGrid(), usedGrid));
+                    if (target.globalFace(facing, usedGrid, context.parent.getPos()) == face)
+                        targets.add(target);
+                }
         return targets;
     }
 
-    private Iterable<SawTarget> connectedTargets(Level level, LittleTileContext context, LittleGrid usedGrid) {
+    private Iterable<SawTarget> connectedTargets(Level level, LittleTileContext context, Facing facing, LittleGrid usedGrid) {
         HashMap<BlockPos, BETiles> blocks = new HashMap<>();
         HashSet<String> visited = new HashSet<>();
         ArrayDeque<SawTarget> queue = new ArrayDeque<>();
         java.util.List<SawTarget> targets = new java.util.ArrayList<>();
         SawTarget start = new SawTarget(context.parent, context.tile, convertBox(context.box, context.parent.getGrid(), usedGrid));
+        BlockPos origin = context.parent.getPos();
+        int face = start.globalFace(facing, usedGrid, origin);
         queue.add(start);
         visited.add(start.key(usedGrid));
         while (!queue.isEmpty()) {
@@ -123,18 +130,18 @@ public class LittleActionSaw extends LittleActionInteract<Boolean> {
             targets.add(current);
             BETiles be = current.parent.getBE();
             blocks.put(be.getBlockPos(), be);
-            addTouching(level, blocks, visited, queue, current, context.tile, usedGrid);
+            addTouching(level, blocks, visited, queue, current, context.tile, facing, usedGrid, origin, face);
         }
         return targets;
     }
 
     private void addTouching(Level level, HashMap<BlockPos, BETiles> blocks, HashSet<String> visited, ArrayDeque<SawTarget> queue, SawTarget current, LittleTile selected,
-            LittleGrid usedGrid) {
-        addTouchingInBlock(visited, queue, current, selected, current.parent.getBE(), usedGrid, current.box);
-        for (Facing facing : Facing.VALUES) {
-            if (!current.box.isFaceAtEdge(usedGrid, facing))
+            Facing actionFacing, LittleGrid usedGrid, BlockPos origin, int face) {
+        addTouchingInBlock(visited, queue, current, selected, current.parent.getBE(), actionFacing, usedGrid, current.box, origin, face);
+        for (Facing searchFacing : Facing.VALUES) {
+            if (!current.box.isFaceAtEdge(usedGrid, searchFacing))
                 continue;
-            BlockPos neighborPos = current.parent.getPos().relative(facing.toVanilla());
+            BlockPos neighborPos = current.parent.getPos().relative(searchFacing.toVanilla());
             BETiles neighbor = blocks.get(neighborPos);
             if (neighbor == null) {
                 BlockEntity be = level.getBlockEntity(neighborPos);
@@ -145,13 +152,13 @@ public class LittleActionSaw extends LittleActionInteract<Boolean> {
                 blocks.put(neighborPos, neighbor);
             }
             LittleBox neighborSpace = current.box.copy();
-            neighborSpace.sub(usedGrid.count * facing.offset(Axis.X), usedGrid.count * facing.offset(Axis.Y), usedGrid.count * facing.offset(Axis.Z));
-            addTouchingInBlock(visited, queue, current, selected, neighbor, usedGrid, neighborSpace);
+            neighborSpace.sub(usedGrid.count * searchFacing.offset(Axis.X), usedGrid.count * searchFacing.offset(Axis.Y), usedGrid.count * searchFacing.offset(Axis.Z));
+            addTouchingInBlock(visited, queue, current, selected, neighbor, actionFacing, usedGrid, neighborSpace, origin, face);
         }
     }
 
-    private void addTouchingInBlock(HashSet<String> visited, ArrayDeque<SawTarget> queue, SawTarget current, LittleTile selected, BETiles be, LittleGrid usedGrid,
-            LittleBox touchingBox) {
+    private void addTouchingInBlock(HashSet<String> visited, ArrayDeque<SawTarget> queue, SawTarget current, LittleTile selected, BETiles be, Facing facing, LittleGrid usedGrid,
+            LittleBox touchingBox, BlockPos origin, int face) {
         for (Pair<IParentCollection, LittleTile> pair : be.allBoxes()) {
             if (pair.key.isStructure() || !selected.is(pair.value))
                 continue;
@@ -159,6 +166,8 @@ public class LittleActionSaw extends LittleActionInteract<Boolean> {
                 LittleBox converted = convertBox(box, pair.key.getGrid(), usedGrid);
                 SawTarget target = new SawTarget(pair.key, pair.value, converted);
                 if (visited.contains(target.key(usedGrid)) || target.key(usedGrid).equals(current.key(usedGrid)))
+                    continue;
+                if (target.globalFace(facing, usedGrid, origin) != face)
                     continue;
                 if (converted.doesTouch(usedGrid, usedGrid, touchingBox)) {
                     visited.add(target.key(usedGrid));
@@ -270,6 +279,11 @@ public class LittleActionSaw extends LittleActionInteract<Boolean> {
 
         public String key(LittleGrid grid) {
             return parent.getPos().toShortString() + ":" + grid.count + ":" + box.minX + "," + box.minY + "," + box.minZ + "," + box.maxX + "," + box.maxY + "," + box.maxZ;
+        }
+
+        public int globalFace(Facing facing, LittleGrid grid, BlockPos origin) {
+            int blockOffset = parent.getPos().subtract(origin).get(facing.axis.toVanilla()) * grid.count;
+            return blockOffset + (facing.positive ? box.getMax(facing.axis) : box.getMin(facing.axis));
         }
 
     }
