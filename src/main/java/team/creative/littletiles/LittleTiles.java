@@ -315,6 +315,11 @@ public class LittleTiles {
             return 0;
         }));
 
+        event.getServer().getCommands().getDispatcher().register(Commands.literal("lt-typewriter").executes((x) -> {
+            LittleTilesGuiRegistry.TYPE_WRITER.open(x.getSource().getPlayerOrException());
+            return 0;
+        }));
+
         /*event.getServer().getCommands().getDispatcher().register(Commands.literal("level").executes((x) -> {
             try {
                 ServerLevel level = x.getSource().getLevel();

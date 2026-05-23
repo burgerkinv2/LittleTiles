@@ -10,6 +10,7 @@ import team.creative.littletiles.common.gui.handler.LittleStructureGuiCreator;
 import team.creative.littletiles.common.gui.premade.GuiExport;
 import team.creative.littletiles.common.gui.premade.GuiImport;
 import team.creative.littletiles.common.gui.premade.GuiPhotoImporter;
+import team.creative.littletiles.common.gui.premade.GuiTypeWriter;
 import team.creative.littletiles.common.gui.signal.GuiSignalStructurePlaced;
 import team.creative.littletiles.common.gui.signal.dialog.GuiDialogSignal;
 import team.creative.littletiles.common.gui.signal.dialog.GuiDialogSignalEvents;
@@ -66,6 +67,7 @@ public class LittleTilesGuiRegistry {
     public static final GuiCreatorBasic EXPORTER = GuiCreator.register("exporter", new GuiCreatorBasic((nbt, player) -> new GuiExport()));
     public static final GuiCreatorBasic IMPORTER = GuiCreator.register("importer", new GuiCreatorBasic((nbt, player) -> new GuiImport()));
     public static final GuiCreatorBasic PHOTO_IMPORTER = GuiCreator.register("photo_importer", new GuiCreatorBasic((nbt, player) -> new GuiPhotoImporter()));
+    public static final GuiCreatorBasic TYPE_WRITER = GuiCreator.register("type_writer", new GuiCreatorBasic((nbt, player) -> new GuiTypeWriter()));
     
     public static final LittleStructureGuiCreator PARTICLE = GuiCreator.register("particle", new LittleStructureGuiCreator((nbt, player,
             structure) -> new GuiParticle((LittleParticleEmitter) structure), x -> x.particleGui));
