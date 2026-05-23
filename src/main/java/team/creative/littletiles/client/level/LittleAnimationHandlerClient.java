@@ -14,6 +14,7 @@ import java.util.concurrent.PriorityBlockingQueue;
 
 import javax.annotation.Nullable;
 
+import org.joml.Matrix3f;
 import org.joml.Matrix4f;
 
 import com.google.common.collect.Lists;
@@ -406,10 +407,7 @@ public class LittleAnimationHandlerClient extends LittleAnimationHandler impleme
 
             pose.pushPose();
             Vec3 renderCam = animation.getRenderManager().setupRendering(pose, cam, partialTicks);
-            if (shaderinstance.MODEL_VIEW_MATRIX != null) {
-                shaderinstance.MODEL_VIEW_MATRIX.set(pose.last().pose());
-                shaderinstance.MODEL_VIEW_MATRIX.upload();
-            }
+            updateModelViewUniforms(shaderinstance, pose.last().pose(), true);
             if (context != null)
                 SableClientBridge.setupVanillaRenderShader(context, shaderinstance, true);
             animation.getRenderManager().renderChunkLayer(layer, pose, renderCam.x, renderCam.y, renderCam.z, projectionMatrix, offset);
@@ -420,11 +418,41 @@ public class LittleAnimationHandlerClient extends LittleAnimationHandler impleme
 
         if (offset != null)
             offset.set(0F, 0F, 0F);
-        if (shaderinstance.MODEL_VIEW_MATRIX != null) {
-            shaderinstance.MODEL_VIEW_MATRIX.set(modelViewMatrix);
-            shaderinstance.MODEL_VIEW_MATRIX.upload();
-        }
+        updateModelViewUniforms(shaderinstance, modelViewMatrix, true);
         VertexBuffer.unbind();
+    }
+
+    private static void updateModelViewUniforms(ShaderInstance shader, Matrix4f modelViewMatrix, boolean upload) {
+        Uniform modelView = shader.MODEL_VIEW_MATRIX;
+        if (modelView != null) {
+            modelView.set(modelViewMatrix);
+            if (upload)
+                modelView.upload();
+        }
+
+        Matrix4f inverse = new Matrix4f();
+        modelViewMatrix.invert(inverse);
+
+        Uniform modelViewInverse = shader.getUniform("ModelViewMatInverse");
+        if (modelViewInverse != null) {
+            modelViewInverse.set(inverse);
+            if (upload)
+                modelViewInverse.upload();
+        }
+
+        Matrix3f normalMatrix = inverse.transpose3x3(new Matrix3f());
+        updateMatrix3Uniform(shader, "NormalMat", normalMatrix, upload);
+        updateMatrix3Uniform(shader, "NormalMatrix", normalMatrix, upload);
+    }
+
+    private static void updateMatrix3Uniform(ShaderInstance shader, String name, Matrix3f matrix, boolean upload) {
+        Uniform uniform = shader.getUniform(name);
+        if (uniform == null)
+            return;
+
+        uniform.set(matrix);
+        if (upload)
+            uniform.upload();
     }
 
     @SubscribeEvent
