@@ -77,8 +77,11 @@ public class LittleToolMeasure extends LittleTool {
         if (stack.get(LittleTilesRegistry.MEASUREMENTS) != component) {
             component = stack.get(LittleTilesRegistry.MEASUREMENTS);
             reset();
-            if (component != null)
+            if (component != null) {
                 measurements.addAll(component.value());
+                for (int[] selectedBox : component.selected())
+                    selected.add(LittleBoxAbsolute.of(selectedBox));
+            }
             buildBoxes(renderer);
         }
     }
@@ -105,7 +108,8 @@ public class LittleToolMeasure extends LittleTool {
         for (LittleMeasurement measurement : measurements)
             measurement.collectPositions(positions);
         positions.addAll(selected);
-        positions.add(last);
+        if (last != null)
+            positions.add(last);
         int markedIndex = positions.indexOf(markedPosition);
         renderer.renderBoxes(pose, cam, positions, x -> x == markedIndex);
 
@@ -180,7 +184,10 @@ public class LittleToolMeasure extends LittleTool {
     }
 
     private void updateMeasurements() {
-        component = MeasurementsComponent.of(measurements, MeasurementsComponent.getUnit(stack));
+        List<int[]> selectedBoxes = new ArrayList<>();
+        for (LittleBoxAbsolute box : selected)
+            selectedBoxes.add(box.toArray());
+        component = MeasurementsComponent.of(measurements, MeasurementsComponent.getUnit(stack), selectedBoxes, MeasurementsComponent.getDefaultColor(stack));
         var packet = new MeasurementPacket(component);
         packet.execute(MC.player);
         LittleTiles.NETWORK.sendToServer(packet);
@@ -219,6 +226,8 @@ public class LittleToolMeasure extends LittleTool {
                         if (measurement != null) {
                             measurements.remove(measurement);
                             updateMeasurements();
+                        } else if (selected.remove(temp.get(index))) {
+                            updateMeasurements();
                         }
                     }
                     marked = -1;
@@ -240,10 +249,12 @@ public class LittleToolMeasure extends LittleTool {
             selected.add(last.copy());
             var type = stack.has(LittleTilesRegistry.MEASUREMENT_TYPE) ? stack.get(LittleTilesRegistry.MEASUREMENT_TYPE).type : LittleMeasurementType.REGISTRY.getDefault();
             if (type.points().apply(selected.size())) {
-                measurements.add(type.factory().apply(new ArrayList<>(selected)));
+                LittleMeasurement measurement = type.factory().apply(new ArrayList<>(selected));
+                measurement.color = MeasurementsComponent.getDefaultColor(stack);
+                measurements.add(measurement);
                 selected.clear();
-                updateMeasurements();
             }
+            updateMeasurements();
         }
 
         event.setCanceled(true);

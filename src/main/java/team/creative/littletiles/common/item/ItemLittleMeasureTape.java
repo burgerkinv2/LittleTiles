@@ -35,7 +35,7 @@ public class ItemLittleMeasureTape extends Item implements ILittleMeasure, IItem
 
     @Override
     public void setMeasurements(ItemStack stack, List<LittleMeasurement> measurements) {
-        stack.set(LittleTilesRegistry.MEASUREMENTS, MeasurementsComponent.of(measurements, MeasurementsComponent.getUnit(stack)));
+        stack.set(LittleTilesRegistry.MEASUREMENTS, MeasurementsComponent.withMeasurements(stack, measurements));
     }
 
     @Override

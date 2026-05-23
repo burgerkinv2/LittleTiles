@@ -6,6 +6,7 @@ import javax.annotation.Nullable;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.client.settings.KeyModifier;
 import team.creative.creativecore.common.config.api.CreativeConfig;
 import team.creative.creativecore.common.config.premade.KeyConfig;
@@ -55,30 +56,31 @@ public class BuildingModeMeasureType extends BuildingModeFeature implements Buil
     @Override
     public void tick(PreviewRenderer renderer) {
         super.tick(renderer);
-        var type = renderer.manager.tool().stack.get(LittleTilesRegistry.MEASUREMENT_TYPE);
-        if (type != null && type.type != lastType)
-            changed(type);
+        LittleMeasurementType type = selectedType(renderer.manager.tool().stack);
+        if (type != lastType)
+            changedLabel(type);
         
     }
     
     @Override
     public void createInfo(GuiParent parent) {
         parent.add(label = new GuiLabel(title));
-        var stack = MC.player.getMainHandItem();
-        if (stack.has(LittleTilesRegistry.MEASUREMENT_TYPE))
-            changedLabel(stack.get(LittleTilesRegistry.MEASUREMENT_TYPE).type);
+        changedLabel(selectedType(MC.player.getMainHandItem()));
     }
     
     public void cycle() {
         var stack = MC.player.getMainHandItem();
-        if (stack.has(LittleTilesRegistry.MEASUREMENT_TYPE)) {
-            var type = stack.get(LittleTilesRegistry.MEASUREMENT_TYPE).type;
-            
-            type = LittleMeasurementType.REGISTRY.get(LittleMeasurementType.REGISTRY.next(LittleMeasurementType.REGISTRY.name(type)));
-            var c = new MeasurementTypeComponent(type);
-            stack.set(LittleTilesRegistry.MEASUREMENT_TYPE, c);
-            changed(c);
-        }
+        var type = selectedType(stack);
+
+        type = LittleMeasurementType.REGISTRY.get(LittleMeasurementType.REGISTRY.next(LittleMeasurementType.REGISTRY.name(type)));
+        var c = new MeasurementTypeComponent(type);
+        stack.set(LittleTilesRegistry.MEASUREMENT_TYPE, c);
+        changed(c);
+    }
+
+    private LittleMeasurementType selectedType(ItemStack stack) {
+        MeasurementTypeComponent component = stack.get(LittleTilesRegistry.MEASUREMENT_TYPE);
+        return component != null ? component.type : LittleMeasurementType.REGISTRY.getDefault();
     }
     
     @Override

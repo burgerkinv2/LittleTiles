@@ -28,19 +28,42 @@ public final class LittleMeasurementUnits {
         return formatDecimal(convertFromBlocks(blocks, unit)) + unit;
     }
 
+    public static String formatArea(double blocks, LittleGrid grid, String unit) {
+        if (unit == null || TILE.equals(unit))
+            return formatBlockTile(blocks, grid, 2);
+        double factor = convertFromBlocks(1, unit);
+        return formatDecimal(blocks * factor * factor) + unit + "^2";
+    }
+
+    public static String formatVolume(double blocks, LittleGrid grid, String unit) {
+        if (unit == null || TILE.equals(unit))
+            return formatBlockTile(blocks, grid, 3);
+        double factor = convertFromBlocks(1, unit);
+        return formatDecimal(blocks * factor * factor * factor) + unit + "^3";
+    }
+
     public static String formatBlockTile(double blocks, LittleGrid grid) {
+        return formatBlockTile(blocks, grid, 1);
+    }
+
+    private static String formatBlockTile(double blocks, LittleGrid grid, int power) {
         if (grid == null)
             grid = LittleGrid.MIN;
-        long total = Math.round(blocks * grid.count);
+        long scale = 1;
+        for (int i = 0; i < power; i++)
+            scale *= grid.count;
+        long total = Math.round(blocks * scale);
         if (total <= 0)
             return "0";
-        long b = total / grid.count;
-        long t = total % grid.count;
+        long b = total / scale;
+        long t = total % scale;
+        String blockUnit = power == 1 ? "B" : "B^" + power;
+        String tileUnit = power == 1 ? "t" : "t^" + power;
         if (t == 0)
-            return b + "B";
+            return b + blockUnit;
         if (b == 0)
-            return t + "/" + grid.count + "t";
-        return b + "B " + t + "/" + grid.count + "t";
+            return t + "/" + scale + tileUnit;
+        return b + blockUnit + " " + t + "/" + scale + tileUnit;
     }
 
     private static double convertFromBlocks(double blocks, String unit) {

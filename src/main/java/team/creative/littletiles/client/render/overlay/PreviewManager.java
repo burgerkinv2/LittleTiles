@@ -175,9 +175,14 @@ public class PreviewManager implements LevelAwareHandler {
     protected void drawNonHighlight(RenderLevelStageEvent event) {
         if (event.getStage() != Stage.AFTER_BLOCK_ENTITIES)
             return;
-        if (MC.getCameraEntity() instanceof Player && !MC.options.hideGui && tool != null) {
-            tool.render(renderer, event.getPoseStack(), MC.gameRenderer.getMainCamera().getPosition(), true);
-            tool.renderGui(renderer, LittleTilesClient.OVERLAY_RENDERER, MC.gameRenderer.getMainCamera().getPosition());
+        if (MC.getCameraEntity() instanceof Player && !MC.options.hideGui) {
+            Vec3 cam = MC.gameRenderer.getMainCamera().getPosition();
+            if (tool != null) {
+                tool.render(renderer, event.getPoseStack(), cam, true);
+                tool.renderGui(renderer, LittleTilesClient.OVERLAY_RENDERER, cam);
+            }
+            if (tool == null || !tool.buildingMode())
+                BuildingModeFeatures.MEASURES.renderGlobal(renderer, event.getPoseStack(), LittleTilesClient.OVERLAY_RENDERER, cam);
         }
     }
     

@@ -3,6 +3,7 @@ package team.creative.littletiles.common.math.measure;
 import java.util.List;
 
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import team.creative.creativecore.common.util.math.base.Axis;
@@ -31,26 +32,26 @@ public class LittleMeasurementArea extends LittleMeasurementBox {
 
         var center = bb.getCenter();
         if (cam.x > bb.maxX)
-            displayFace(renderer, overlay, cam, bb, center, Facing.EAST);
+            displayFace(renderer, overlay, cam, bb, center, Facing.EAST, unit);
         else if (cam.x < bb.minX)
-            displayFace(renderer, overlay, cam, bb, center, Facing.WEST);
+            displayFace(renderer, overlay, cam, bb, center, Facing.WEST, unit);
 
         if (cam.y > bb.maxY)
-            displayFace(renderer, overlay, cam, bb, center, Facing.UP);
+            displayFace(renderer, overlay, cam, bb, center, Facing.UP, unit);
         else if (cam.y < bb.minY)
-            displayFace(renderer, overlay, cam, bb, center, Facing.DOWN);
+            displayFace(renderer, overlay, cam, bb, center, Facing.DOWN, unit);
 
         if (cam.z > bb.maxZ)
-            displayFace(renderer, overlay, cam, bb, center, Facing.SOUTH);
+            displayFace(renderer, overlay, cam, bb, center, Facing.SOUTH, unit);
         else if (cam.z < bb.minZ)
-            displayFace(renderer, overlay, cam, bb, center, Facing.NORTH);
+            displayFace(renderer, overlay, cam, bb, center, Facing.NORTH, unit);
     }
 
-    private void displayFace(PreviewRenderer renderer, OverlayRenderer overlay, Vec3 cam, AABB bb, Vec3 center, Facing facing) {
+    private void displayFace(PreviewRenderer renderer, OverlayRenderer overlay, Vec3 cam, AABB bb, Vec3 center, Facing facing, String unit) {
         Vec3d vec = new Vec3d(center);
         vec.set(facing.axis, facing.get(bb));
         double area = facing.axis == Axis.X ? bb.getYsize() * bb.getZsize() : (facing.axis == Axis.Y ? bb.getXsize() * bb.getZsize() : bb.getXsize() * bb.getYsize());
-        overlay.renderLabel(cam, vec, displayArea(area), color != 0 ? color : ColorUtils.WHITE);
+        overlay.renderLabel(cam, vec, Component.literal(LittleMeasurementUnits.formatArea(area, box.grid, unit)), color != 0 ? color : ColorUtils.WHITE);
     }
 
 }

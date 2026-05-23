@@ -84,3 +84,21 @@ modImplemented = [
     [ name: "org.sinytra.forgified-fabric-api:fabric-rendering-data-attachment-v1:0.3.48+73761d2e19", disabled: true ],
     [ name: "org.sinytra.forgified-fabric-api:fabric-block-view-api-v2:1.0.10+9afaaf8c19", disabled: true ],
 ]
+
+def deployTargetStr = (project.findProperty('deployTarget') ?: 'F:/Game/Minecraft/Mymodpack/versions/creative5/mods').toString()
+def deployTargetDir = file(deployTargetStr)
+
+tasks.register('deployJar', Copy) {
+    group = 'littletiles'
+    description = 'Copies the built LittleTiles jar to the configured Minecraft mods folder.'
+    dependsOn tasks.named('jar')
+    from(tasks.named('jar').map { it.archiveFile })
+    into(deployTargetDir)
+    doLast {
+        logger.lifecycle("Deployed LittleTiles jar to ${deployTargetDir}")
+    }
+}
+
+tasks.named('build').configure {
+    finalizedBy(tasks.named('deployJar'))
+}
