@@ -56,6 +56,7 @@ import team.creative.littletiles.common.action.LittleActionDestroyBoxes;
 import team.creative.littletiles.common.action.LittleActionDestroyBoxes.LittleActionDestroyBoxesFiltered;
 import team.creative.littletiles.common.action.LittleActionPlace;
 import team.creative.littletiles.common.action.LittleActionRegistry;
+import team.creative.littletiles.common.action.LittleActionSaw;
 import team.creative.littletiles.common.action.LittleActions;
 import team.creative.littletiles.common.action.exception.LittleActionException;
 import team.creative.littletiles.common.block.entity.BETiles;
@@ -214,6 +215,7 @@ public class LittleTiles {
         LittleActionRegistry.register(LittleActionDestroyBoxes.class, LittleActionDestroyBoxes::new);
         LittleActionRegistry.register(LittleActionDestroyBoxesFiltered.class, LittleActionDestroyBoxesFiltered::new);
         LittleActionRegistry.register(LittleActionDestroy.class, LittleActionDestroy::new);
+        LittleActionRegistry.register(LittleActionSaw.class, LittleActionSaw::new);
         
         NeoForge.EVENT_BUS.register(new LittleBedEventHandler());
         NeoForge.EVENT_BUS.register(new LittleItemHandler());

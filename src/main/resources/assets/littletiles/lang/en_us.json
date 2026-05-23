@@ -252,6 +252,8 @@
     "littletiles.screwdriver.tooltip": "'%s' first position\n'%s' second position\n'%s' modify selected area",
     "littletiles.wrench.tooltip": "'%s' rebuilds blocks cache\n'SHIFT + %s' to edit signals of structures\nDisplays signals and disables particle emitters when in hand",
     "littletiles.measure_tape.tooltip": "%s to draw measurements\n%s to select or deselect corner (movable by arrows)\nSHIFT + %s delete box\nSHIFT + DOUBLE %s remove all",
+    "gui.saw.mode": "Mode",
+    "gui.saw.shift_mode": "Shift Mode",
     "gui.measure_tape.type": "Type",
     "gui.measure_tape.unit": "Unit",
     "gui.measure_tape.default_color": "Default color",

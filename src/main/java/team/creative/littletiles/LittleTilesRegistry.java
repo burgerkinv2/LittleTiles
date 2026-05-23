@@ -71,6 +71,7 @@ import team.creative.littletiles.common.item.ItemLittleScrewdriver;
 import team.creative.littletiles.common.item.ItemLittleWrench;
 import team.creative.littletiles.common.item.ItemMultiTiles;
 import team.creative.littletiles.common.item.ItemPremadeStructure;
+import team.creative.littletiles.common.item.component.LittleSawMode;
 import team.creative.littletiles.common.item.component.MatrixDataComponent;
 import team.creative.littletiles.common.item.component.MeasurementTypeComponent;
 import team.creative.littletiles.common.item.component.MeasurementsComponent;
@@ -143,6 +144,10 @@ public class LittleTilesRegistry {
         x -> DataComponentType.<MeasurementsComponent>builder().persistent(MeasurementsComponent.CODEC).networkSynchronized(MeasurementsComponent.STREAM_CODEC).build());
     public static final DeferredHolder<DataComponentType<?>, DataComponentType<MeasurementTypeComponent>> MEASUREMENT_TYPE = DATA_COMPONENTS.register("measurement_type",
         x -> DataComponentType.<MeasurementTypeComponent>builder().persistent(MeasurementTypeComponent.CODEC).networkSynchronized(MeasurementTypeComponent.STREAM_CODEC).build());
+    public static final DeferredHolder<DataComponentType<?>, DataComponentType<LittleSawMode>> SAW_MODE = DATA_COMPONENTS.register("saw_mode",
+        x -> DataComponentType.<LittleSawMode>builder().persistent(LittleSawMode.CODEC).networkSynchronized(LittleSawMode.STREAM_CODEC).build());
+    public static final DeferredHolder<DataComponentType<?>, DataComponentType<LittleSawMode>> SAW_SHIFT_MODE = DATA_COMPONENTS.register("saw_shift_mode",
+        x -> DataComponentType.<LittleSawMode>builder().persistent(LittleSawMode.CODEC).networkSynchronized(LittleSawMode.STREAM_CODEC).build());
     
     public static final DeferredHolder<DataComponentType<?>, DataComponentType<BlockPos>> FIRST_POS = DATA_COMPONENTS.register("pos1", x -> DataComponentType.<BlockPos>builder()
             .persistent(BlockPos.CODEC).networkSynchronized(BlockPos.STREAM_CODEC).build());
@@ -265,6 +270,7 @@ public class LittleTilesRegistry {
                         output.accept(entry.createItemStack());
                     
                 output.accept(LittleTilesRegistry.HAMMER.value());
+                output.accept(LittleTilesRegistry.SAW.value());
                 output.accept(LittleTilesRegistry.CHISEL.value());
                 output.accept(LittleTilesRegistry.BLUEPRINT.value());
                 

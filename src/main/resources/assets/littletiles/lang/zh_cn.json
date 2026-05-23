@@ -251,6 +251,8 @@
     "littletiles.saw.tooltip": "'%s' 延长\n'%s' 缩进\n按住'CTRL'+右键延长至一个MC方块边界",
     "littletiles.screwdriver.tooltip": "'%s' 第一个位置\n'%s' 第二个位置\n'%s'修改所选区域",
      "littletiles.wrench.tooltip": "'%s' 重建方块缓存\n'SHIFT + %s' 编辑结构的信号\n显示信号 并 在手持时禁用粒子发射器",
+    "gui.saw.mode": "模式",
+    "gui.saw.shift_mode": "Shift 模式",
     "block.littletiles.colored_clean": "染色方块(清澈)",
     "block.littletiles.colored_floor": "染色方块(基底)",
     "block.littletiles.colored_grainy_big": "染色方块(大纹理)",
