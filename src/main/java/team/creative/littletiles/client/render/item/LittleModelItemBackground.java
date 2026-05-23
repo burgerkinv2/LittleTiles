@@ -13,6 +13,8 @@ import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
+import team.creative.creativecore.client.render.model.CreativeBakedModel;
+import team.creative.creativecore.client.render.model.CreativeBlockModel;
 import team.creative.creativecore.client.render.model.CreativeItemModel;
 
 @OnlyIn(Dist.CLIENT)
@@ -56,6 +58,36 @@ public class LittleModelItemBackground extends CreativeItemModel {
     public void prepareRenderer(ItemDisplayContext context, PoseStack pose) {
         if (context == ItemDisplayContext.GUI)
             pose.translate(0, 0, 1);
+    }
+
+    protected boolean shouldRenderContentDirectly(ItemStack stack, ItemDisplayContext context) {
+        return isContentOnlyContext(context) && !getFakeStack(stack).isEmpty();
+    }
+
+    protected boolean isContentOnlyContext(ItemDisplayContext context) {
+        return context.firstPerson() || context == ItemDisplayContext.THIRD_PERSON_LEFT_HAND || context == ItemDisplayContext.THIRD_PERSON_RIGHT_HAND || context == ItemDisplayContext.GROUND;
+    }
+
+    @Override
+    public CreativeBakedModel create(CreativeBlockModel block) {
+        return new Baked(location, this);
+    }
+
+    private static class Baked extends CreativeBakedModel {
+
+        public Baked(ModelResourceLocation location, LittleModelItemBackground item) {
+            super(location, item);
+        }
+
+        @Override
+        public BakedModel applyTransform(ItemDisplayContext transformType, PoseStack poseStack, boolean applyLeftHandTransform) {
+            if (renderedStack != null && ((LittleModelItemBackground) item).shouldRenderContentDirectly(renderedStack, transformType)) {
+                Minecraft mc = Minecraft.getInstance();
+                BakedModel model = mc.getItemRenderer().getModel(((LittleModelItemBackground) item).getFakeStack(renderedStack), null, null, 0);
+                return model.applyTransform(transformType, poseStack, applyLeftHandTransform);
+            }
+            return super.applyTransform(transformType, poseStack, applyLeftHandTransform);
+        }
     }
     
 }
