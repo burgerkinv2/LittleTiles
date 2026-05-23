@@ -42,28 +42,28 @@ import team.creative.littletiles.common.packet.item.MeasurementPacket;
 import team.creative.littletiles.common.placement.PlacementHelper;
 
 public class LittleToolMeasure extends LittleTool {
-    
+
     private static final Minecraft MC = Minecraft.getInstance();
-    
+
     public final ILittleMeasure measure;
     private List<LittleMeasurement> measurements = new ArrayList<>();
     private MeasurementsComponent component;
-    
+
     private LittleBoxAbsolute last;
     private List<LittleBoxAbsolute> selected = new ArrayList<>();
-    
+
     private int marked;
     private LittleBoxAbsolute markedPosition;
     private BoxRenderResult result;
-    
+
     private int lastMouseKey = -1;
     private double lastMouseClicked;
-    
+
     public LittleToolMeasure(ItemStack stack) {
         super(stack);
         measure = (ILittleMeasure) stack.getItem();
     }
-    
+
     public void reset() {
         measurements.clear();
         selected.clear();
@@ -71,17 +71,18 @@ public class LittleToolMeasure extends LittleTool {
         markedPosition = null;
         removeCache();
     }
-    
+
     @Override
     protected void tickInternal(PreviewRenderer renderer) {
         if (stack.get(LittleTilesRegistry.MEASUREMENTS) != component) {
             component = stack.get(LittleTilesRegistry.MEASUREMENTS);
             reset();
-            measurements.addAll(component.value());
+            if (component != null)
+                measurements.addAll(component.value());
             buildBoxes(renderer);
         }
     }
-    
+
     @Override
     protected void renderInternal(PreviewRenderer renderer, PoseStack pose, Vec3 cam, boolean lines) {
         if (!lines)
@@ -89,17 +90,17 @@ public class LittleToolMeasure extends LittleTool {
         renderer.setupPreviewRenderer(true);
         RenderSystem.disableCull();
         RenderSystem.setShaderColor(1, 1, 1, 1);
-        
+
         if (result != null)
             renderer.renderSeethroughLines(cam, lines, result.pos(), result.data(), -1);
-        
+
         var blockHit = renderer.blockHit();
         var player = renderer.player();
         var level = renderer.level();
-        
+
         if (blockHit != null)
             last = new ShapePosition(player, PlacementHelper.getPosition(level, blockHit, measure.getPositionGrid(player, stack)), blockHit, false, true).toAbsoluteBox();
-        
+
         List<LittleBoxAbsolute> positions = new ArrayList<>();
         for (LittleMeasurement measurement : measurements)
             measurement.collectPositions(positions);
@@ -107,87 +108,89 @@ public class LittleToolMeasure extends LittleTool {
         positions.add(last);
         int markedIndex = positions.indexOf(markedPosition);
         renderer.renderBoxes(pose, cam, positions, x -> x == markedIndex);
-        
+
         RenderSystem.setShaderColor(1, 1, 1, 1);
         RenderSystem.enableCull();
         RenderSystem.applyModelViewMatrix();
-        
+
     }
-    
+
     @Override
     protected void renderGuiInternal(PreviewRenderer renderer, OverlayRenderer overlay, Vec3 cam) {
         super.renderGuiInternal(renderer, overlay, cam);
         for (LittleMeasurement measurement : measurements)
-            measurement.overlay(renderer, overlay, cam);
+            measurement.overlay(renderer, overlay, cam, MeasurementsComponent.getUnit(stack));
     }
-    
+
     private void removeCache() {
         if (result != null) {
             result.close();
             result = null;
         }
     }
-    
+
     @Override
     public boolean keyPressed(PreviewRenderer renderer, int keyCode, int scanCode, int action, int modifiers) {
         if (action != InputConstants.PRESS)
             return false;
-        
+
         var facing = LittleTilesClient.facingFromKeybind(MC.player, keyCode, scanCode);
         if (facing != null && markedPosition != null) {
-            
+
             var grid = measure.getPositionGrid(renderer.player(), stack);
             LittleVec vec = new LittleVec(facing);
             vec.scale(Screen.hasControlDown() ? grid.count : 1);
             var vecGrid = new LittleVecGrid(vec, grid);
-            
+
             markedPosition.sameGrid(vecGrid, () -> markedPosition.box.add(vecGrid.getVec()));
-            if (marked != -1)
+            if (marked != -1) {
                 measurements.get(marked).changed();
+                updateMeasurements();
+            }
             buildBoxes(renderer);
             return true;
         }
-        
+
         return super.keyPressed(renderer, keyCode, scanCode, action, modifiers);
     }
-    
+
     private void buildBoxes(PreviewRenderer renderer) {
         removeCache();
-        
+
         if (measurements.isEmpty()) {
             result = null;
             return;
         }
-        
+
         ByteBufferBuilder buffer = renderer.createBuffer();
         var builder = renderer.createBuilder(buffer, true);
-        
+
         BlockPos pos = last != null ? last.pos : BlockPos.ZERO;
-        
+
         PoseStack pose = new PoseStack();
         pose.translate(-pos.getX(), -pos.getY(), -pos.getZ());
-        
+
         for (LittleMeasurement measurement : measurements)
             measurement.build(renderer, pose, builder);
-        
+
         var mesh = builder.build();
         if (mesh instanceof MeshDataExtender m)
             m.keepAlive(true);
         result = new BoxRenderResult(null, pos, buffer, mesh);
     }
-    
+
     private void updateMeasurements() {
-        component = MeasurementsComponent.of(measurements);
+        component = MeasurementsComponent.of(measurements, MeasurementsComponent.getUnit(stack));
         var packet = new MeasurementPacket(component);
         packet.execute(MC.player);
         LittleTiles.NETWORK.sendToServer(packet);
     }
-    
+
     @Override
     public void mouseInput(Pre event) {
         if (event.getAction() != InputConstants.PRESS || MC.player == null || MC.screen != null)
             return;
-        
+
         var renderer = LittleTilesClient.PREVIEW_RENDERER.renderer;
         boolean doubleClick = lastMouseKey == event.getButton() && Blaze3D.getTime() - lastMouseClicked < ScreenEventListener.DOUBLE_CLICK_TIME;
         lastMouseKey = event.getButton();
@@ -201,10 +204,10 @@ public class LittleToolMeasure extends LittleTool {
                     map.put(pos, measurement);
                 temp.clear();
             }
-            
+
             temp.addAll(map.keySet());
             temp.addAll(selected);
-            
+
             if (LittleActionHandlerClient.isUsingSecondMode())
                 if (doubleClick) {
                     reset();
@@ -232,6 +235,8 @@ public class LittleToolMeasure extends LittleTool {
                 }
             }
         } else if (event.getButton() == GLFW.GLFW_MOUSE_BUTTON_RIGHT) {
+            if (last == null)
+                return;
             selected.add(last.copy());
             var type = stack.has(LittleTilesRegistry.MEASUREMENT_TYPE) ? stack.get(LittleTilesRegistry.MEASUREMENT_TYPE).type : LittleMeasurementType.REGISTRY.getDefault();
             if (type.points().apply(selected.size())) {
@@ -240,11 +245,11 @@ public class LittleToolMeasure extends LittleTool {
                 updateMeasurements();
             }
         }
-        
+
         event.setCanceled(true);
         buildBoxes(renderer);
     }
-    
+
     @Override
     public List<BuildingModeFeature> buildingFeatures() {
         List<BuildingModeFeature> features = new ArrayList<>();
@@ -254,7 +259,7 @@ public class LittleToolMeasure extends LittleTool {
         features.add(BuildingModeFeatures.CYCLE_MEASURES);
         return features;
     }
-    
+
     public void unloadLevel() {
         measurements.clear();
         selected.clear();
@@ -263,5 +268,5 @@ public class LittleToolMeasure extends LittleTool {
         marked = -1;
         removeCache();
     }
-    
+
 }

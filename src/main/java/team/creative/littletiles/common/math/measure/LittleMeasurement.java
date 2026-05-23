@@ -19,7 +19,7 @@ import team.creative.littletiles.common.grid.LittleGrid;
 import team.creative.littletiles.common.math.box.LittleBoxAbsolute;
 
 public abstract class LittleMeasurement {
-    
+
     public static Component displayLength(double length) {
         int blocks = (int) length;
         double pixels = (length - blocks) / LittleGrid.overallDefault().pixelLength;
@@ -30,7 +30,7 @@ public abstract class LittleMeasurement {
             text.append((blocks > 0 ? " " : "") + TooltipUtils.print(pixels) + "").append(Component.translatable("volume.unit.small.short"));
         return text;
     }
-    
+
     public static Component displayArea(double area) {
         int blocks = (int) area;
         double pixels = (area - blocks) / LittleGrid.overallDefault().pixelArea;
@@ -41,7 +41,7 @@ public abstract class LittleMeasurement {
             text.append((blocks > 0 ? " " : "") + TooltipUtils.print(pixels) + "").append(Component.translatable("volume.unit.small.short"));
         return text;
     }
-    
+
     public static Component displayVolume(double volume) {
         int blocks = (int) volume;
         double pixels = (volume - blocks) / LittleGrid.overallDefault().pixelVolume;
@@ -52,41 +52,48 @@ public abstract class LittleMeasurement {
             text.append((blocks > 0 ? " " : "") + TooltipUtils.print(pixels) + "").append(Component.translatable("volume.unit.small.short"));
         return text;
     }
-    
+
     public static final NamedTypeRegistry<LittleMeasurement> REGISTRY = new NamedTypeRegistry<LittleMeasurement>().addConstructorPattern(CompoundTag.class);
-    
+
     @Nullable
     public static LittleMeasurement load(CompoundTag nbt) {
         try {
             return REGISTRY.create(nbt.getString("type"), nbt);
         } catch (RegistryException e) {
             return null;
+        } catch (RuntimeException e) {
+            return null;
         }
     }
-    
+
     static {
         REGISTRY.register("line", LittleMeasurementLine.class);
         REGISTRY.register("box", LittleMeasurementBox.class);
         REGISTRY.register("area", LittleMeasurementArea.class);
         REGISTRY.register("volume", LittleMeasurementVolume.class);
+        REGISTRY.register("compass", LittleMeasurementCompass.class);
     }
-    
+
     public int color;
-    
+
     public LittleMeasurement(CompoundTag nbt) {
         this.color = nbt.getInt("color");
     }
-    
+
     public LittleMeasurement() {}
-    
+
     public abstract void build(PreviewRenderer renderer, PoseStack pose, BufferBuilder builder);
-    
-    public abstract void overlay(PreviewRenderer renderer, OverlayRenderer overlay, Vec3 cam);
-    
+
+    public void overlay(PreviewRenderer renderer, OverlayRenderer overlay, Vec3 cam) {
+        overlay(renderer, overlay, cam, null);
+    }
+
+    public abstract void overlay(PreviewRenderer renderer, OverlayRenderer overlay, Vec3 cam, String unit);
+
     public abstract void collectPositions(List<LittleBoxAbsolute> positions);
-    
+
     public void changed() {}
-    
+
     public CompoundTag save() {
         CompoundTag nbt = new CompoundTag();
         nbt.putInt("color", color);
@@ -94,39 +101,43 @@ public abstract class LittleMeasurement {
         saveExtra(nbt);
         return nbt;
     }
-    
+
     protected abstract void saveExtra(CompoundTag nbt);
-    
+
     public static abstract class LittleMeasurementSimple extends LittleMeasurement {
-        
+
         protected final LittleBoxAbsolute first;
         protected final LittleBoxAbsolute second;
-        
+
         public LittleMeasurementSimple(CompoundTag nbt) {
             super(nbt);
-            first = LittleBoxAbsolute.of(nbt.getIntArray("0"));
-            second = LittleBoxAbsolute.of(nbt.getIntArray("1"));
+            int[] firstArr = nbt.getIntArray("0");
+            int[] secondArr = nbt.getIntArray("1");
+            if (firstArr.length < 3 || secondArr.length < 3)
+                throw new IllegalArgumentException("LittleMeasurementSimple: missing position arrays");
+            first = LittleBoxAbsolute.of(firstArr);
+            second = LittleBoxAbsolute.of(secondArr);
             changed();
         }
-        
+
         public LittleMeasurementSimple(List<LittleBoxAbsolute> positions) {
             this.first = positions.get(0);
             this.second = positions.get(1);
             changed();
         }
-        
+
         @Override
         public void collectPositions(List<LittleBoxAbsolute> positions) {
             positions.add(first);
             positions.add(second);
         }
-        
+
         @Override
         protected void saveExtra(CompoundTag nbt) {
             nbt.putIntArray("0", first.toArray());
             nbt.putIntArray("1", second.toArray());
         }
-        
+
     }
-    
+
 }

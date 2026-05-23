@@ -11,23 +11,23 @@ import team.creative.littletiles.client.render.overlay.PreviewRenderer;
 import team.creative.littletiles.common.math.box.LittleBoxAbsolute;
 
 public class LittleMeasurementVolume extends LittleMeasurementBox {
-    
+
     public LittleMeasurementVolume(CompoundTag nbt) {
         super(nbt);
     }
-    
+
     public LittleMeasurementVolume(List<LittleBoxAbsolute> positions) {
         super(positions);
     }
-    
+
     @Override
-    public void overlay(PreviewRenderer renderer, OverlayRenderer overlay, Vec3 cam) {
+    public void overlay(PreviewRenderer renderer, OverlayRenderer overlay, Vec3 cam, String unit) {
         var bb = box.toAABB();
         if (!renderer.isVisible(bb))
             return;
-        
+
         var center = bb.getCenter();
-        
-        overlay.renderLabel(cam, new Vec3d(center), displayVolume(bb.getXsize() * bb.getYsize() * bb.getZsize()), ColorUtils.WHITE);
+
+        overlay.renderLabel(cam, new Vec3d(center), displayVolume(bb.getXsize() * bb.getYsize() * bb.getZsize()), color != 0 ? color : ColorUtils.WHITE);
     }
 }

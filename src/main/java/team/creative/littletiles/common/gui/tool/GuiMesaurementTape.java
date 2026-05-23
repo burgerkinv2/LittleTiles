@@ -18,13 +18,14 @@ import team.creative.littletiles.common.item.component.MeasurementTypeComponent;
 import team.creative.littletiles.common.item.component.MeasurementsComponent;
 import team.creative.littletiles.common.math.measure.LittleMeasurement;
 import team.creative.littletiles.common.math.measure.LittleMeasurementType;
+import team.creative.littletiles.common.math.measure.LittleMeasurementUnits;
 
 public class GuiMesaurementTape extends GuiConfigure {
-    
+
     public GuiMesaurementTape(ContainerSlotView tool) {
         super("measurement_tape", 200, 200, tool);
     }
-    
+
     @Override
     public void create() {
         flow = GuiFlow.STACK_Y;
@@ -34,40 +35,48 @@ public class GuiMesaurementTape extends GuiConfigure {
         types.select(tool.get().has(LittleTilesRegistry.MEASUREMENT_TYPE) ? tool.get().get(LittleTilesRegistry.MEASUREMENT_TYPE).type : LittleMeasurementType.REGISTRY
                 .getDefault());
         add(types.setExpandableX());
+        GuiStateButton<String> units = new GuiStateButton<>("unit", new TextMapBuilder<String>().addComponent(LittleMeasurementUnits.ALL,
+            unit -> net.minecraft.network.chat.Component.translatable("gui.measure_tape.unit." + unit)));
+        units.select(MeasurementsComponent.getUnit(tool.get()) != null ? MeasurementsComponent.getUnit(tool.get()) : LittleMeasurementUnits.defaultUnit());
+        add(units.setExpandableX());
         List<GuiMeasurement> controls = new ArrayList<>();
         for (LittleMeasurement m : measurements)
             controls.add(new GuiMeasurement(m));
         GuiListBoxBase<GuiMeasurement> list = new GuiListBoxBase<>("measures", true, controls);
         add(list.setExpandable());
     }
-    
+
     @Override
     public boolean saveConfiguration(PatchedDataComponentMap data) {
         GuiStateButton<LittleMeasurementType> types = get("type");
         data.set(LittleTilesRegistry.MEASUREMENT_TYPE.value(), new MeasurementTypeComponent(types.selected()));
+        GuiStateButton<String> units = get("unit");
+        String unit = units.selected(LittleMeasurementUnits.defaultUnit());
+        if (LittleMeasurementUnits.defaultUnit().equals(unit))
+            unit = null;
         List<LittleMeasurement> measurements = new ArrayList<>();
         GuiListBoxBase<GuiMeasurement> list = get("measures");
         for (GuiMeasurement m : list.items())
             measurements.add(m.save());
-        data.set(LittleTilesRegistry.MEASUREMENTS.value(), MeasurementsComponent.of(measurements));
+        data.set(LittleTilesRegistry.MEASUREMENTS.value(), MeasurementsComponent.of(measurements, unit));
         return true;
     }
-    
+
     public class GuiMeasurement extends GuiParent {
-        
+
         public final LittleMeasurement measurement;
         public final GuiColorPicker picker;
-        
+
         public GuiMeasurement(LittleMeasurement measurement) {
             this.measurement = measurement;
             this.picker = new GuiColorPicker("color", new Color(measurement.color), true, 0);
             add(picker);
         }
-        
+
         public LittleMeasurement save() {
             measurement.color = this.picker.color.toInt();
             return measurement;
         }
     }
-    
+
 }

@@ -6,6 +6,7 @@ import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.PoseStack;
 
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -15,43 +16,46 @@ import team.creative.creativecore.common.util.math.vec.Vec3f;
 import team.creative.creativecore.common.util.mc.ColorUtils;
 import team.creative.littletiles.client.render.overlay.OverlayRenderer;
 import team.creative.littletiles.client.render.overlay.PreviewRenderer;
+import team.creative.littletiles.common.grid.LittleGrid;
 import team.creative.littletiles.common.math.box.LittleBoxAbsolute;
 import team.creative.littletiles.common.math.measure.LittleMeasurement.LittleMeasurementSimple;
 
 public class LittleMeasurementLine extends LittleMeasurementSimple {
-    
+
     private AABB bb;
     private Vec3d start;
     private Vec3d end;
     private Vec3d center;
     private double length;
-    
+
     public LittleMeasurementLine(CompoundTag nbt) {
         super(nbt);
     }
-    
+
     public LittleMeasurementLine(List<LittleBoxAbsolute> positions) {
         super(positions);
     }
-    
+
     @Override
-    public void overlay(PreviewRenderer renderer, OverlayRenderer overlay, Vec3 cam) {
+    public void overlay(PreviewRenderer renderer, OverlayRenderer overlay, Vec3 cam, String unit) {
         if (!renderer.isVisible(bb))
             return;
-        overlay.renderLabel(cam, center, displayLength(length), ColorUtils.WHITE);
+        LittleGrid grid = first.grid != null && first.grid.count >= second.grid.count ? first.grid : second.grid;
+        int displayColor = color != 0 ? color : ColorUtils.WHITE;
+        overlay.renderLabel(cam, center, Component.literal(LittleMeasurementUnits.format(length, grid, unit)), displayColor);
     }
-    
+
     @Override
     public void changed() {
         super.changed();
         LittleBoxAbsolute combined = this.first.copy();
         combined.include(second);
-        
+
         var minFirst = this.first.getMin().getVec3d();
         var minSecond = this.second.getMin().getVec3d();
-        
+
         bb = combined.toAABB();
-        
+
         start = new Vec3d();
         end = new Vec3d();
         if (minFirst.x < minSecond.x) {
@@ -86,7 +90,7 @@ public class LittleMeasurementLine extends LittleMeasurementSimple {
         center = new Vec3d((start.x + end.x) * 0.5, (start.y + end.y) * 0.5, (start.z + end.z) * 0.5);
         length = start.distance(end);
     }
-    
+
     @Override
     public void build(PreviewRenderer renderer, PoseStack pose, BufferBuilder builder) {
         Vec3f normal = new Vec3f();
@@ -94,5 +98,5 @@ public class LittleMeasurementLine extends LittleMeasurementSimple {
         builder.addVertex(pose.last().pose(), (float) start.x, (float) start.y, (float) start.z).setColor(color).setNormal(pose.last(), normal.x, normal.y, normal.z);
         builder.addVertex(pose.last().pose(), (float) end.x, (float) end.y, (float) end.z).setColor(color).setNormal(pose.last(), normal.x, normal.y, normal.z);
     }
-    
+
 }
