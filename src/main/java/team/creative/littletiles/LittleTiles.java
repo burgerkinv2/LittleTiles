@@ -310,6 +310,11 @@ public class LittleTiles {
             return 0;
         }));
         
+        event.getServer().getCommands().getDispatcher().register(Commands.literal("lt-photoimporter").executes((x) -> {
+            LittleTilesGuiRegistry.PHOTO_IMPORTER.open(x.getSource().getPlayerOrException());
+            return 0;
+        }));
+
         /*event.getServer().getCommands().getDispatcher().register(Commands.literal("level").executes((x) -> {
             try {
                 ServerLevel level = x.getSource().getLevel();
