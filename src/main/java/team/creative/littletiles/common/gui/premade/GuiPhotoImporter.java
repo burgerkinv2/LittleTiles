@@ -106,6 +106,7 @@ public class GuiPhotoImporter extends GuiLayer {
         add(optionRow);
         optionRow.add(new GuiCheckBox("ignore_alpha", false).setTranslate("gui.photo_importer.ignore_alpha"));
         optionRow.add(new GuiCheckBox("keep_aspect", true).setTranslate("gui.photo_importer.keep_aspect"));
+        add(new GuiCheckBox("create_structure", true).setTranslate("gui.photo_importer.create_structure"));
         
         add(new GuiLabeledControl("gui.grid", new GuiComboBox<LittleGrid>("grid", LittleTiles.CONFIG.build.get(getPlayer()).gridBuilder()).setExpandableX()));
         add(new GuiLabeledControl("gui.photo_importer.color_accuracy", new GuiSlider("color_accuracy", 1, 0, 1).setDim(80, 10)));
@@ -259,8 +260,8 @@ public class GuiPhotoImporter extends GuiLayer {
     
     private PhotoImportOptions options() {
         GuiComboBox<LittleGrid> grid = get("grid");
-        return new PhotoImportOptions(grid.selected(LittleGrid.overallDefault()), get("ignore_alpha", GuiCheckBox.class).value, get("color_accuracy", GuiSlider.class).getValue(),
-            DEFAULT_MAX_PIXELS, LittleTilesRegistry.CLEAN.value().defaultBlockState());
+        return new PhotoImportOptions(grid.selected(LittleGrid.overallDefault()), get("ignore_alpha", GuiCheckBox.class).value, get("create_structure", GuiCheckBox.class).value,
+            get("color_accuracy", GuiSlider.class).getValue(), DEFAULT_MAX_PIXELS, LittleTilesRegistry.CLEAN.value().defaultBlockState());
     }
     
     private BufferedImage readImage() throws IOException {

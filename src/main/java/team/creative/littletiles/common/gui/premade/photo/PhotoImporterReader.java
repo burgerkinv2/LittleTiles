@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.Collections;
 
 import javax.imageio.ImageIO;
 
@@ -78,9 +79,17 @@ public class PhotoImporterReader {
         
         group.combine(true);
         group.convertToSmallest();
+        if (options.createStructure())
+            group = wrapStructure(group);
         return group;
     }
     
+    private static LittleGroup wrapStructure(LittleGroup group) {
+        CompoundTag structure = new CompoundTag();
+        structure.putString("id", "fixed");
+        return new LittleGroup(structure, group, Collections.EMPTY_LIST);
+    }
+
     public static CompoundTag toBlueprintContent(BufferedImage image, PhotoImportOptions options) {
         return LittleGroup.save(toGroup(image, options));
     }
@@ -114,7 +123,7 @@ public class PhotoImporterReader {
     }
     
     public static PhotoImportOptions defaultOptions() {
-        return new PhotoImportOptions(team.creative.littletiles.common.grid.LittleGrid.overallDefault(), false, 1, 4096, Blocks.STONE.defaultBlockState());
+        return new PhotoImportOptions(team.creative.littletiles.common.grid.LittleGrid.overallDefault(), false, true, 1, 4096, Blocks.STONE.defaultBlockState());
     }
     
 }
