@@ -46,7 +46,6 @@ public class ItemLittleBlueprint extends Item implements ILittlePlacer, ILittleS
     public static final String CONTENT_KEY = "c";
     public static final String NO_ITEM_PREVIEW_SHRINK_KEY = "lt_no_item_preview_shrink";
     public static final String ITEM_MODEL_SCALE_KEY = "item_model_scale";
-    public static final String ITEM_MODEL_EXTRA_SCALE_KEY = "lt_item_model_extra_scale";
     public static final String ITEM_MODEL_DISPLAY_SCALE_KEY = "lt_item_model_display_scale";
     public static final String ITEM_MODEL_OFFSET_X_KEY = "item_model_offset_x";
     public static final String ITEM_MODEL_OFFSET_Y_KEY = "item_model_offset_y";
@@ -92,7 +91,7 @@ public class ItemLittleBlueprint extends Item implements ILittlePlacer, ILittleS
 
         content.remove(ITEM_MODEL_SCALE_KEY);
         content.remove("item_model_scale_itemblock");
-        content.remove(ITEM_MODEL_EXTRA_SCALE_KEY);
+        content.remove("lt_item_model_extra_scale");
         content.remove(ITEM_MODEL_DISPLAY_SCALE_KEY);
         content.remove(SHOW_BLUEPRINT_BACKGROUND_KEY);
         content.remove(ITEM_MODEL_OFFSET_X_KEY);
@@ -105,12 +104,8 @@ public class ItemLittleBlueprint extends Item implements ILittlePlacer, ILittleS
         ItemStack contentStack = new ItemStack(LittleTilesRegistry.ITEM_TILES.value());
         if (shrinkItemPreview) {
             float renderScale = targetScale / automaticScale;
-            if (hasCustomScale && renderScale != DEFAULT_ITEM_MODEL_SCALE) {
-                if (renderScale < DEFAULT_ITEM_MODEL_SCALE)
-                    content.putFloat(ITEM_MODEL_EXTRA_SCALE_KEY, renderScale);
-                else
-                    content.putFloat(ITEM_MODEL_DISPLAY_SCALE_KEY, renderScale);
-            }
+            if (hasCustomScale && renderScale != DEFAULT_ITEM_MODEL_SCALE)
+                content.putFloat(ITEM_MODEL_DISPLAY_SCALE_KEY, renderScale);
         }
         if (!shrinkItemPreview)
             content.putBoolean(NO_ITEM_PREVIEW_SHRINK_KEY, true);
@@ -128,12 +123,6 @@ public class ItemLittleBlueprint extends Item implements ILittlePlacer, ILittleS
         if (!data.contains(ITEM_MODEL_SCALE_KEY))
             return DEFAULT_ITEM_MODEL_SCALE;
         return Mth.clamp(data.getFloat(ITEM_MODEL_SCALE_KEY), MIN_ITEM_MODEL_SCALE, MAX_ITEM_MODEL_SCALE);
-    }
-
-    public static float getItemModelExtraScale(CompoundTag data) {
-        if (!data.contains(ITEM_MODEL_EXTRA_SCALE_KEY))
-            return DEFAULT_ITEM_MODEL_SCALE;
-        return Mth.clamp(data.getFloat(ITEM_MODEL_EXTRA_SCALE_KEY), MIN_ITEM_MODEL_SCALE, MAX_ITEM_MODEL_SCALE);
     }
 
     public static float getItemModelDisplayScale(CompoundTag data) {

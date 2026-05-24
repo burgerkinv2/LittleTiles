@@ -41,12 +41,20 @@ import team.creative.littletiles.client.LittleTilesClient;
 import team.creative.littletiles.client.action.LittleActionHandlerClient;
 import team.creative.littletiles.client.level.LevelAwareHandler;
 import team.creative.littletiles.client.tool.LittleTool;
+import team.creative.littletiles.client.tool.LittleToolMeasure;
+import team.creative.littletiles.client.tool.LittleToolPlacer;
+import team.creative.littletiles.client.tool.LittleToolSelection;
+import team.creative.littletiles.client.tool.LittleToolWrench;
 import team.creative.littletiles.client.tool.mode.BuildingModeFeature;
 import team.creative.littletiles.client.tool.mode.BuildingModeFeatures;
+import team.creative.littletiles.client.tool.shaper.LittleToolShaper;
 import team.creative.littletiles.common.action.LittleAction;
 import team.creative.littletiles.common.action.exception.LittleActionException;
 import team.creative.littletiles.common.block.mc.BlockTile;
+import team.creative.littletiles.common.config.LittleConfigRendering.Appearance;
 import team.creative.littletiles.common.gui.tool.GuiConfigure;
+import team.creative.littletiles.common.item.ItemLittleBlueprint;
+import team.creative.littletiles.common.item.ItemLittleChisel;
 import team.creative.littletiles.common.math.vec.LittleHitResult;
 import team.creative.littletiles.common.mod.sable.SableBridge;
 
@@ -58,6 +66,10 @@ public class PreviewManager implements LevelAwareHandler {
     public final PreviewRenderer renderer = new PreviewRenderer(this);
     private ItemStack lastHeld = ItemStack.EMPTY;
     private LittleTool tool;
+    private VoxelShape topHighlightShape;
+    private double topHighlightX;
+    private double topHighlightY;
+    private double topHighlightZ;
     
     public PreviewManager() {
         NeoForge.EVENT_BUS.register(this);
@@ -72,6 +84,33 @@ public class PreviewManager implements LevelAwareHandler {
         if (tool != null)
             tool.remove();
         tool = null;
+        renderer.appearance(LittleTiles.CONFIG.rendering.toolPreview.defaultTool);
+    }
+
+    private boolean renderToolPreviewsOnTop() {
+        return LittleTiles.CONFIG.rendering.toolPreview.renderOnTop;
+    }
+
+    private Appearance appearanceForTool() {
+        var config = LittleTiles.CONFIG.rendering.toolPreview;
+        if (tool == null)
+            return config.defaultTool;
+        if (tool instanceof LittleToolPlacer) {
+            if (tool.stack.getItem() instanceof ItemLittleBlueprint)
+                return config.blueprint;
+            return config.placer;
+        }
+        if (tool.stack.getItem() instanceof ItemLittleChisel)
+            return config.chisel;
+        if (tool instanceof LittleToolSelection)
+            return config.selection;
+        if (tool instanceof LittleToolShaper)
+            return config.shaper;
+        if (tool instanceof LittleToolWrench)
+            return config.wrench;
+        if (tool instanceof LittleToolMeasure)
+            return config.measure;
+        return config.defaultTool;
     }
     
     @Override
@@ -90,8 +129,6 @@ public class PreviewManager implements LevelAwareHandler {
         
         Player player = MC.player;
         ItemStack stack = player.getMainHandItem();
-        PoseStack pose = new PoseStack();
-        
         if (!ItemStack.isSameItem(stack, lastHeld) || (stack.getItem() instanceof ILittleTool tool && !tool.isCorrectTool(stack, this.tool))) {
             boolean buildingMode = tool != null && tool.buildingMode();
             clearToolPreviews();
@@ -111,17 +148,18 @@ public class PreviewManager implements LevelAwareHandler {
         
         if (tool != null) {
             tool.stack = stack;
+            renderer.appearance(appearanceForTool());
             tool.tick(renderer);
         }
         
         processKeys(stack, true);
-        
-        if (tool != null) {
+
+        if (tool != null && !renderToolPreviewsOnTop()) {
             Vec3 cam = MC.gameRenderer.getMainCamera().getPosition();
+            PoseStack pose = new PoseStack();
+            renderer.appearance(appearanceForTool());
             RenderSystem.enableBlend();
-            
             tool.render(renderer, pose, cam, false);
-            
             RenderSystem.depthMask(true);
             RenderSystem.disableBlend();
             RenderSystem.defaultBlendFunc();
@@ -173,16 +211,31 @@ public class PreviewManager implements LevelAwareHandler {
     
     @SubscribeEvent
     protected void drawNonHighlight(RenderLevelStageEvent event) {
-        if (event.getStage() != Stage.AFTER_BLOCK_ENTITIES)
+        boolean renderOnTop = renderToolPreviewsOnTop();
+        if (event.getStage() != (renderOnTop ? Stage.AFTER_LEVEL : Stage.AFTER_BLOCK_ENTITIES))
             return;
         if (MC.getCameraEntity() instanceof Player && !MC.options.hideGui) {
             Vec3 cam = MC.gameRenderer.getMainCamera().getPosition();
-            if (tool != null) {
-                tool.render(renderer, event.getPoseStack(), cam, true);
-                tool.renderGui(renderer, LittleTilesClient.OVERLAY_RENDERER, cam);
-            }
-            if (tool == null || !tool.buildingMode())
-                BuildingModeFeatures.MEASURES.renderGlobal(renderer, event.getPoseStack(), LittleTilesClient.OVERLAY_RENDERER, cam);
+            Runnable render = () -> {
+                if (tool != null) {
+                    renderer.appearance(appearanceForTool());
+                    if (renderOnTop)
+                        tool.render(renderer, event.getPoseStack(), cam, false);
+                    tool.render(renderer, event.getPoseStack(), cam, true);
+                    tool.renderGui(renderer, LittleTilesClient.OVERLAY_RENDERER, cam);
+                }
+                if (tool == null || !tool.buildingMode()) {
+                    renderer.appearance(LittleTiles.CONFIG.rendering.toolPreview.measure);
+                    BuildingModeFeatures.MEASURES.renderGlobal(renderer, event.getPoseStack(), LittleTilesClient.OVERLAY_RENDERER, cam);
+                }
+                if (topHighlightShape != null)
+                    PreviewRenderer.renderTopShapeLines(event.getPoseStack(), topHighlightShape, topHighlightX, topHighlightY, topHighlightZ, 0.0F, 0.0F, 0.0F, 0.4F);
+            };
+            if (renderOnTop)
+                renderer.renderTopLevel(event.getModelViewMatrix(), render);
+            else
+                render.run();
+            topHighlightShape = null;
         }
     }
     
@@ -201,7 +254,6 @@ public class PreviewManager implements LevelAwareHandler {
             return;
         
         if (!event.isCanceled() && level.getBlockState(targetPos).getBlock() instanceof BlockTile && level.getWorldBorder().isWithinBounds(targetPos)) {
-            PoseStack pose = event.getPoseStack();
             BlockPos pos = targetPos;
             BlockState state = level.getBlockState(pos);
             VoxelShape shape;
@@ -209,8 +261,14 @@ public class PreviewManager implements LevelAwareHandler {
                 shape = block.getSelectionShape(level, pos);
             else
                 shape = state.getShape(level, pos, CollisionContext.of(player));
-            PreviewRenderer.renderShape(pose, event.getMultiBufferSource().getBuffer(RenderType.lines()), shape, pos.getX() - cam.x, pos.getY() - cam.y, pos.getZ() - cam.z, 0.0F,
-                0.0F, 0.0F, 0.4F);
+            if (renderToolPreviewsOnTop()) {
+                topHighlightShape = shape;
+                topHighlightX = pos.getX() - cam.x;
+                topHighlightY = pos.getY() - cam.y;
+                topHighlightZ = pos.getZ() - cam.z;
+            } else
+                PreviewRenderer.renderShape(event.getPoseStack(), event.getMultiBufferSource().getBuffer(RenderType.lines()), shape, pos.getX() - cam.x, pos.getY() - cam.y, pos
+                        .getZ() - cam.z, 0.0F, 0.0F, 0.0F, 0.4F);
             event.setCanceled(true);
         }
         

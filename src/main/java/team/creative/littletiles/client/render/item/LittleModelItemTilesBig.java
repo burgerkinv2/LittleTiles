@@ -24,9 +24,6 @@ public class LittleModelItemTilesBig extends LittleModelItemTiles {
         var data = ILittleTool.getData(stack);
         if (!data.getBoolean(ItemLittleBlueprint.NO_ITEM_PREVIEW_SHRINK_KEY))
             LittleGroup.shrinkCubesToOneBlock(boxes);
-        float extraScale = ItemLittleBlueprint.getItemModelExtraScale(data);
-        if (extraScale != ItemLittleBlueprint.DEFAULT_ITEM_MODEL_SCALE)
-            LittleGroup.scaleCubesForItemPreview(boxes, extraScale);
         return boxes;
     }
 

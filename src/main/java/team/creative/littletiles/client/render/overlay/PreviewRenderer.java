@@ -5,6 +5,7 @@ import java.util.Optional;
 
 import javax.annotation.Nullable;
 
+import org.joml.Matrix4f;
 import org.lwjgl.opengl.GL14;
 
 import com.mojang.blaze3d.platform.GlStateManager;
@@ -41,6 +42,7 @@ import team.creative.littletiles.client.mod.sable.SableClientBridge;
 import team.creative.littletiles.client.render.mc.MeshDataExtender;
 import team.creative.littletiles.client.render.tile.LittleRenderBox;
 import team.creative.littletiles.client.tool.shaper.ShapePosition;
+import team.creative.littletiles.common.config.LittleConfigRendering.Appearance;
 import team.creative.littletiles.common.block.little.tile.LittleTileContext;
 import team.creative.littletiles.common.grid.LittleGrid;
 import team.creative.littletiles.common.math.box.LittleBox;
@@ -65,10 +67,36 @@ public class PreviewRenderer {
             consumer.addVertex(posestack$pose.pose(), (float) (x2 + x), (float) (y2 + y), (float) (z2 + z)).setColor(red, green, blue, alpha).setNormal(posestack$pose, f, f1, f2);
         });
     }
+
+    public static void renderTopShapeLines(PoseStack pose, VoxelShape shape, double x, double y, double z, float red, float green, float blue, float alpha) {
+        BufferBuilder bufferbuilder = Tesselator.getInstance().begin(VertexFormat.Mode.LINES, DefaultVertexFormat.POSITION_COLOR_NORMAL);
+        renderShape(pose, bufferbuilder, shape, x, y, z, red, green, blue, alpha);
+        MeshData mesh = bufferbuilder.build();
+        if (mesh == null)
+            return;
+
+        RenderSystem.depthMask(true);
+        RenderSystem.disableCull();
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+        RenderSystem.disableDepthTest();
+        RenderSystem.depthMask(false);
+        RenderSystem.setShader(GameRenderer::getRendertypeLinesShader);
+        drawPreviewMesh(mesh, true);
+        RenderSystem.depthMask(true);
+        RenderSystem.enableDepthTest();
+        RenderSystem.enableCull();
+    }
+
+    public static void drawPreviewMesh(MeshData mesh, boolean lines) {
+        BufferUploader.drawWithShader(mesh);
+    }
     
     public static final PoseStack EMPTY = new PoseStack();
     
     public final PreviewManager manager;
+    private boolean topLevelOverlay;
+    private Appearance appearance = LittleTiles.CONFIG.rendering.toolPreview.defaultTool;
     
     public PreviewRenderer(PreviewManager manager) {
         this.manager = manager;
@@ -89,7 +117,35 @@ public class PreviewRenderer {
     public boolean isUsingSecondMode() {
         return LittleActionHandlerClient.isUsingSecondMode();
     }
-    
+
+    public void appearance(Appearance appearance) {
+        this.appearance = appearance != null ? appearance : LittleTiles.CONFIG.rendering.toolPreview.defaultTool;
+    }
+
+    public static void renderWithModelView(Matrix4f modelViewMatrix, Runnable render) {
+        var matrix = RenderSystem.getModelViewStack();
+        matrix.pushMatrix();
+        matrix.set(modelViewMatrix);
+        RenderSystem.applyModelViewMatrix();
+        try {
+            render.run();
+        } finally {
+            matrix.popMatrix();
+            RenderSystem.applyModelViewMatrix();
+        }
+    }
+
+    public void renderTopLevel(Matrix4f modelViewMatrix, Runnable render) {
+        topLevelOverlay = true;
+        try {
+            renderWithModelView(modelViewMatrix, render);
+        } finally {
+            topLevelOverlay = false;
+            RenderSystem.depthMask(true);
+            RenderSystem.enableDepthTest();
+        }
+    }
+
     public LittleTileContext selectFocused(BlockHitResult result) {
         LittleTileContext sableContext = SableClientBridge.selectFocusedWithRenderPose(level(), result.getBlockPos(), player(), partialTickTime());
         if (sableContext != null)
@@ -151,10 +207,16 @@ public class PreviewRenderer {
     
     public void setupPreviewRendererLines(float red, float green, float blue, float alpha, float lineWidth) {
         RenderSystem.setShader(GameRenderer::getRendertypeLinesShader);
-        RenderSystem.lineWidth(lineWidth);
+        RenderSystem.lineWidth((float) appearance.lineWidth);
         
-        RenderSystem.setShaderColor(red, green, blue, alpha);
-        RenderSystem.enableDepthTest();
+        RenderSystem.setShaderColor(red, green, blue, (float) appearance.lineAlpha);
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+        if (topLevelOverlay) {
+            RenderSystem.disableDepthTest();
+            RenderSystem.depthMask(false);
+        } else
+            RenderSystem.enableDepthTest();
     }
     
     public void setupPreviewRenderer(boolean lines) {
@@ -162,20 +224,23 @@ public class PreviewRenderer {
             setupPreviewRendererLines(0, 0, 0, 0.4F, (float) LittleTiles.CONFIG.rendering.previewLineThickness);
             return;
         }
-        if (LittleTiles.CONFIG.rendering.darkerPreviewBoxShading) {
+        RenderSystem.enableBlend();
+        if (LittleTiles.CONFIG.rendering.darkerPreviewBoxShading && !topLevelOverlay) {
             GL14.glBlendColor(0.25F, 0.25F, 0.25F, 0.25F);
             RenderSystem.blendFuncSeparate(GlStateManager.SourceFactor.CONSTANT_COLOR, GlStateManager.DestFactor.ONE_MINUS_DST_COLOR, GlStateManager.SourceFactor.ONE,
                 GlStateManager.DestFactor.ZERO);
         } else
-            RenderSystem.blendFuncSeparate(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA, GlStateManager.SourceFactor.ONE,
-                GlStateManager.DestFactor.ZERO);
+            RenderSystem.defaultBlendFunc();
         
-        double alpha = (float) (Math.sin(System.nanoTime() / 200000000D) * 0.2 + 0.5);
-        RenderSystem.setShaderColor(1, 1, 1, (float) alpha);
+        RenderSystem.setShaderColor(1, 1, 1, 1);
         
         RenderSystem.setShaderTexture(0, PreviewManager.WHITE_TEXTURE);
         RenderSystem.setShader(GameRenderer::getPositionColorShader);
-        RenderSystem.depthMask(Minecraft.useShaderTransparency());
+        if (topLevelOverlay) {
+            RenderSystem.disableDepthTest();
+            RenderSystem.depthMask(false);
+        } else
+            RenderSystem.depthMask(Minecraft.useShaderTransparency());
         RenderSystem.enableCull();
     }
     
@@ -199,7 +264,7 @@ public class PreviewRenderer {
         if (lines)
             box.renderLines(pose, builder, colorAlpha, box.getCenter(), 0.001);
         else
-            box.renderPreview(pose, builder, colorAlpha);
+            box.renderPreview(pose, builder, (int) Math.round(colorAlpha * appearance.filledAlpha));
     }
     
     public void renderBoxes(Vec3 cam, BlockPos pos, boolean lines, MeshData data) {
@@ -221,7 +286,7 @@ public class PreviewRenderer {
         if (adjustGL != null)
             adjustGL.run();
         
-        BufferUploader.drawWithShader(data);
+        drawPreviewMesh(data, lines);
         matrix.popMatrix();
         RenderSystem.applyModelViewMatrix();
     }
@@ -313,7 +378,11 @@ public class PreviewRenderer {
         RenderSystem.disableCull();
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
-        RenderSystem.enableDepthTest();
+        if (topLevelOverlay) {
+            RenderSystem.disableDepthTest();
+            RenderSystem.depthMask(false);
+        } else
+            RenderSystem.enableDepthTest();
         
         box.inflate(0.002);
         
@@ -322,17 +391,20 @@ public class PreviewRenderer {
         RenderSystem.lineWidth(4.0F);
         box.renderLines(pose, bufferbuilder, 0, 0, 0, 1F);
         
-        BufferUploader.drawWithShader(bufferbuilder.buildOrThrow());
+        drawPreviewMesh(bufferbuilder.buildOrThrow(), true);
         
         RenderSystem.disableDepthTest();
         if (color != -1) {
             bufferbuilder = tesselator.begin(VertexFormat.Mode.LINES, DefaultVertexFormat.POSITION_COLOR_NORMAL);
             RenderSystem.lineWidth(1.0F);
             box.renderLines(pose, bufferbuilder, ColorUtils.redF(color), ColorUtils.greenF(color), ColorUtils.blueF(color), ColorUtils.alphaF(color));
-            BufferUploader.drawWithShader(bufferbuilder.buildOrThrow());
+            drawPreviewMesh(bufferbuilder.buildOrThrow(), true);
         }
         
-        RenderSystem.enableDepthTest();
+        if (topLevelOverlay)
+            RenderSystem.depthMask(true);
+        else
+            RenderSystem.enableDepthTest();
         RenderSystem.enableCull();
     }
     

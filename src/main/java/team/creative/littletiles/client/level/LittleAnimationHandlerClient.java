@@ -25,7 +25,6 @@ import com.mojang.blaze3d.vertex.ByteBufferBuilder;
 import com.mojang.blaze3d.vertex.MeshData;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexBuffer;
-import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.blaze3d.vertex.VertexFormat;
 
 import net.minecraft.CrashReport;
@@ -41,7 +40,6 @@ import net.minecraft.client.renderer.chunk.SectionCompiler;
 import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.protocol.game.ClientboundAddEntityPacket;
-import net.minecraft.util.Mth;
 import net.minecraft.util.thread.ProcessorMailbox;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
@@ -70,6 +68,7 @@ import team.creative.littletiles.client.mod.sodium.SodiumManager;
 import team.creative.littletiles.client.render.entity.LittleAnimationRenderManager;
 import team.creative.littletiles.client.render.level.LittleRenderChunk;
 import team.creative.littletiles.client.render.level.RenderUploader;
+import team.creative.littletiles.client.render.overlay.PreviewRenderer;
 import team.creative.littletiles.common.block.mc.BlockTile;
 import team.creative.littletiles.common.entity.LittleEntity;
 import team.creative.littletiles.common.level.handler.LittleAnimationHandler;
@@ -538,7 +537,7 @@ public class LittleAnimationHandlerClient extends LittleAnimationHandler impleme
 
     @SubscribeEvent
     public void tick(RenderLevelStageEvent event) {
-        if (event.getStage() != Stage.AFTER_SKY)
+        if (event.getStage() != Stage.AFTER_LEVEL)
             return;
 
         if (!shouldRenderBlockOutline())
@@ -551,7 +550,6 @@ public class LittleAnimationHandlerClient extends LittleAnimationHandler impleme
         RenderSystem.applyModelViewMatrix();
         BlockPos pos = result.asBlockHit().getBlockPos();
         BlockState state = result.level.getBlockState(pos);
-        VertexConsumer vertexconsumer2 = mc.renderBuffers().bufferSource().getBuffer(RenderType.lines());
         LittleEntity entity = result.getHolder();
         Vec3 position = mc.gameRenderer.getMainCamera().getPosition();
         Vec3 renderCam = entity.getRenderManager().setupRendering(event.getPoseStack(), position, event.getPartialTick().getGameTimeDeltaPartialTick(false));
@@ -562,26 +560,13 @@ public class LittleAnimationHandlerClient extends LittleAnimationHandler impleme
         double z = pos.getZ() - renderCam.z();
 
         if (!state.isAir() && this.level.getWorldBorder().isWithinBounds(pos)) {
-            PoseStack.Pose posestack$pose = event.getPoseStack().last();
             VoxelShape shape;
             if (state.getBlock() instanceof BlockTile block)
                 shape = block.getSelectionShape(result.level, pos);
             else
                 shape = state.getShape(result.level, pos, CollisionContext.of(mc.cameraEntity));
-
-            shape.forAllEdges((x1, y1, z1, x2, y2, z2) -> {
-                float f = (float) (x2 - x1);
-                float f1 = (float) (y2 - y1);
-                float f2 = (float) (z2 - z1);
-                float f3 = Mth.sqrt(f * f + f1 * f1 + f2 * f2);
-                f /= f3;
-                f1 /= f3;
-                f2 /= f3;
-                vertexconsumer2.addVertex(posestack$pose.pose(), (float) (x1 + x), (float) (y1 + y), (float) (z1 + z)).setColor(0.0F, 0.0F, 0.0F, 0.4F).setNormal(posestack$pose, f,
-                    f1, f2);
-                vertexconsumer2.addVertex(posestack$pose.pose(), (float) (x2 + x), (float) (y2 + y), (float) (z2 + z)).setColor(0.0F, 0.0F, 0.0F, 0.4F).setNormal(posestack$pose, f,
-                    f1, f2);
-            });
+            PreviewRenderer.renderWithModelView(event.getModelViewMatrix(),
+                () -> PreviewRenderer.renderTopShapeLines(event.getPoseStack(), shape, x, y, z, 0.0F, 0.0F, 0.0F, 0.4F));
         }
 
         pose.popPose();

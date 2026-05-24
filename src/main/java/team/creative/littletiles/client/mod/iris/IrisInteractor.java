@@ -17,7 +17,7 @@ public class IrisInteractor {
     public static boolean isShaders() {
         return IrisApi.getInstance().isShaderPackInUse();
     }
-    
+
     public static void beginBlock(ChunkBuildBuffers buffers, BlockState state, BlockPos pos) {
         if (WorldRenderingSettings.INSTANCE.getBlockStateIds() == null)
             return;

@@ -24,7 +24,7 @@ public class IrisManager {
             return IrisInteractor.isShaders();
         return false;
     }
-    
+
     public static void beginBlock(ChunkBuildBuffers buffers, BlockState state, BlockPos pos) {
         if (INSTALLED)
             IrisInteractor.beginBlock(buffers, state, pos);

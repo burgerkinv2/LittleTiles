@@ -27,6 +27,9 @@ public class LittleConfigRendering implements ICreativeConfig {
     public double previewLineThickness = 2;
     
     public boolean darkerPreviewBoxShading = false;
+
+    @CreativeConfig
+    public ToolPreview toolPreview = new ToolPreview();
     
     @CreativeConfig
     public boolean enableRandomDisplayTick = false;
@@ -62,6 +65,51 @@ public class LittleConfigRendering implements ICreativeConfig {
     public void configured(Side side) {
         if (side.isClient())
             RenderingThread.initThreads(renderingThreadCount);
+    }
+
+    public static class ToolPreview {
+
+        @CreativeConfig
+        public boolean renderOnTop = true;
+
+        @CreativeConfig
+        public Appearance defaultTool = new Appearance();
+
+        @CreativeConfig
+        public Appearance placer = new Appearance();
+
+        @CreativeConfig
+        public Appearance blueprint = new Appearance();
+
+        @CreativeConfig
+        public Appearance chisel = new Appearance();
+
+        @CreativeConfig
+        public Appearance selection = new Appearance();
+
+        @CreativeConfig
+        public Appearance shaper = new Appearance();
+
+        @CreativeConfig
+        public Appearance wrench = new Appearance();
+
+        @CreativeConfig
+        public Appearance measure = new Appearance();
+    }
+
+    public static class Appearance {
+
+        @CreativeConfig
+        @CreativeConfig.DecimalRange(slider = true, min = 0, max = 1)
+        public double filledAlpha = 0.5;
+
+        @CreativeConfig
+        @CreativeConfig.DecimalRange(slider = true, min = 0, max = 1)
+        public double lineAlpha = 0.4;
+
+        @CreativeConfig
+        @CreativeConfig.DecimalRange(slider = false, min = 0.25, max = 16)
+        public double lineWidth = 2;
     }
     
 }
