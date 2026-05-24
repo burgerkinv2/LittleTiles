@@ -9,6 +9,7 @@ import net.minecraft.core.component.PatchedDataComponentMap;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import net.minecraft.world.item.component.CustomData;
 import team.creative.creativecore.common.gui.Align;
@@ -38,6 +39,8 @@ import team.creative.littletiles.common.placement.setting.PlacementPlayerSetting
 public class GuiBlueprintSecondary extends GuiConfigureTool {
 
     private static final float ITEM_MODEL_SCALE_STEP = 0.1F;
+    private static final float ITEM_MODEL_OFFSET_STEP = 0.05F;
+    private static final float ITEM_MODEL_ROTATION_STEP = 5F;
     
     public GuiBlueprintSecondary(ContainerSlotView view) {
         super("blueprint_secondary", 180, 285, view);
@@ -64,9 +67,11 @@ public class GuiBlueprintSecondary extends GuiConfigureTool {
         data.set(LittleTilesRegistry.COLOR_SECONDARY.get(), get("picker2", GuiColorPicker.class).color.toInt());
 
         CompoundTag config = ILittleTool.getData(tool.get());
-        float scale = get("item_model_scale", GuiBlueprintScaleControl.class).getValue();
+        float scale = get("item_model_scale", GuiBlueprintFloatControl.class).getValue();
         boolean showBackground = get("show_blueprint_background", GuiCheckBox.class).value;
-        ItemLittleBlueprint.setItemModelSettings(config, scale, showBackground);
+        GuiBlueprintAxisControl offset = get("item_model_offset", GuiBlueprintAxisControl.class);
+        GuiBlueprintAxisControl rotation = get("item_model_rotation", GuiBlueprintAxisControl.class);
+        ItemLittleBlueprint.setItemModelSettings(config, scale, showBackground, offset.x(), offset.y(), offset.z(), rotation.x(), rotation.y(), rotation.z());
         data.set(LittleTilesRegistry.DATA.get(), CustomData.of(config));
         return true;
     }
@@ -95,8 +100,16 @@ public class GuiBlueprintSecondary extends GuiConfigureTool {
 
         CompoundTag config = ILittleTool.getData(tool.get());
         add(new GuiLabel("item_model_scale_label").setTranslate("gui.blueprint.item_model_scale"));
-        add(new GuiBlueprintScaleControl(ItemLittleBlueprint.getItemModelScale(tool.get())));
+        add(new GuiBlueprintFloatControl("item_model_scale", null, ItemLittleBlueprint.getItemModelScale(tool.get()), ItemLittleBlueprint.MIN_ITEM_MODEL_SCALE, ItemLittleBlueprint.MAX_ITEM_MODEL_SCALE,
+            ITEM_MODEL_SCALE_STEP, 34));
         add(new GuiCheckBox("show_blueprint_background", ItemLittleBlueprint.showBlueprintBackground(config)).setTranslate("gui.blueprint.show_background"));
+
+        add(new GuiLabel("item_model_offset_label").setTranslate("gui.blueprint.item_model_offset"));
+        add(axisControls("item_model_offset", ItemLittleBlueprint.getItemModelOffsetX(config), ItemLittleBlueprint.getItemModelOffsetY(config), ItemLittleBlueprint.getItemModelOffsetZ(config),
+            ItemLittleBlueprint.MIN_ITEM_MODEL_OFFSET, ItemLittleBlueprint.MAX_ITEM_MODEL_OFFSET, ITEM_MODEL_OFFSET_STEP));
+        add(new GuiLabel("item_model_rotation_label").setTranslate("gui.blueprint.item_model_rotation"));
+        add(axisControls("item_model_rotation", ItemLittleBlueprint.getItemModelRotationX(config), ItemLittleBlueprint.getItemModelRotationY(config), ItemLittleBlueprint.getItemModelRotationZ(
+            config), ItemLittleBlueprint.MIN_ITEM_MODEL_ROTATION, ItemLittleBlueprint.MAX_ITEM_MODEL_ROTATION, ITEM_MODEL_ROTATION_STEP));
         
         add(new GuiGridConfig("grid", getPlayer(), PlacementPlayerSetting.grid(getPlayer()), LittleTilesClient::grid));
         
@@ -107,24 +120,60 @@ public class GuiBlueprintSecondary extends GuiConfigureTool {
         raiseEvent(new GuiControlChangedEvent(modeBox));
     }
 
-    private class GuiBlueprintScaleControl extends GuiParent {
+    private GuiParent axisControls(String prefix, float x, float y, float z, float min, float max, float step) {
+        return new GuiBlueprintAxisControl(prefix, x, y, z, min, max, step);
+    }
+
+    private class GuiBlueprintAxisControl extends GuiParent {
+
+        public GuiBlueprintAxisControl(String name, float x, float y, float z, float min, float max, float step) {
+            super(name, GuiFlow.STACK_X);
+            spacing = 2;
+            add(new GuiBlueprintFloatControl("x", "X", x, min, max, step, 28).setExpandableX());
+            add(new GuiBlueprintFloatControl("y", "Y", y, min, max, step, 28).setExpandableX());
+            add(new GuiBlueprintFloatControl("z", "Z", z, min, max, step, 28).setExpandableX());
+        }
+
+        public float x() {
+            return get("x", GuiBlueprintFloatControl.class).getValue();
+        }
+
+        public float y() {
+            return get("y", GuiBlueprintFloatControl.class).getValue();
+        }
+
+        public float z() {
+            return get("z", GuiBlueprintFloatControl.class).getValue();
+        }
+
+    }
+
+    private class GuiBlueprintFloatControl extends GuiParent {
 
         private final GuiTextfield textfield;
+        private final float min;
+        private final float max;
+        private final float step;
 
-        public GuiBlueprintScaleControl(float value) {
-            super("item_model_scale", GuiFlow.STACK_X);
+        public GuiBlueprintFloatControl(String name, String axis, float value, float min, float max, float step, int width) {
+            super(name, GuiFlow.STACK_X);
             spacing = 1;
-            textfield = new GuiTextfield("value", format(value)).setDim(34, 10).setFloatOnly();
+            this.min = min;
+            this.max = max;
+            this.step = step;
+            if (axis != null)
+                add(new GuiLabel(name + "_label").setTitle(Component.literal(axis)));
+            textfield = new GuiTextfield("value", format(value)).setDim(width, 10).setFloatOnly();
             add(textfield.setExpandableX());
             GuiParent buttons = new GuiParent(GuiFlow.STACK_Y);
             buttons.spacing = 0;
-            buttons.add(new GuiButtonHoldSlim("+", x -> step(ITEM_MODEL_SCALE_STEP)).setTranslate("gui.plus").setDim(6, 3));
-            buttons.add(new GuiButtonHoldSlim("-", x -> step(-ITEM_MODEL_SCALE_STEP)).setTranslate("gui.minus").setDim(6, 3));
+            buttons.add(new GuiButtonHoldSlim("+", x -> step(step)).setTranslate("gui.plus").setDim(6, 3));
+            buttons.add(new GuiButtonHoldSlim("-", x -> step(-step)).setTranslate("gui.minus").setDim(6, 3));
             add(buttons);
         }
 
         public float getValue() {
-            return Mth.clamp(textfield.parseFloat(), ItemLittleBlueprint.MIN_ITEM_MODEL_SCALE, ItemLittleBlueprint.MAX_ITEM_MODEL_SCALE);
+            return Mth.clamp(textfield.parseFloat(), min, max);
         }
 
         private void step(float amount) {
@@ -133,7 +182,7 @@ public class GuiBlueprintSecondary extends GuiConfigureTool {
         }
 
         private void setValue(float value) {
-            textfield.setText(format(Mth.clamp(value, ItemLittleBlueprint.MIN_ITEM_MODEL_SCALE, ItemLittleBlueprint.MAX_ITEM_MODEL_SCALE)));
+            textfield.setText(format(Mth.clamp(value, min, max)));
         }
 
         private String format(float value) {

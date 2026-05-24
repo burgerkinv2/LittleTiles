@@ -127,6 +127,8 @@
     "gui.blueprint.color.primary": "背景色",
     "gui.blueprint.color.secondary": "边缘色",
     "gui.blueprint.item_model_scale": "物品模型倍率",
+    "gui.blueprint.item_model_offset": "物品模型偏移",
+    "gui.blueprint.item_model_rotation": "物品模型旋转",
     "gui.blueprint.show_background": "显示蓝图背景",
     "gui.door.play_place_sound": "播放放置音效",
     "gui.door.stay_animated.tooltip": "如果可能的话，是否将门恢复成原版方块。",

@@ -169,6 +169,8 @@
     "gui.blueprint.color.primary": "Background Color",
     "gui.blueprint.color.secondary": "Border Color",
     "gui.blueprint.item_model_scale": "Item Model Scale",
+    "gui.blueprint.item_model_offset": "Item Model Offset",
+    "gui.blueprint.item_model_rotation": "Item Model Rotation",
     "gui.blueprint.show_background": "Show blueprint background",
     "gui.door.play_place_sound": "Play place sounds",
     "gui.door.stay_animated.tooltip": "Whether the door should go back to block form if possible.",

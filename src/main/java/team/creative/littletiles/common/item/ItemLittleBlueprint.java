@@ -48,12 +48,24 @@ public class ItemLittleBlueprint extends Item implements ILittlePlacer, ILittleS
     public static final String ITEM_MODEL_SCALE_KEY = "item_model_scale";
     public static final String ITEM_MODEL_EXTRA_SCALE_KEY = "lt_item_model_extra_scale";
     public static final String ITEM_MODEL_DISPLAY_SCALE_KEY = "lt_item_model_display_scale";
+    public static final String ITEM_MODEL_OFFSET_X_KEY = "item_model_offset_x";
+    public static final String ITEM_MODEL_OFFSET_Y_KEY = "item_model_offset_y";
+    public static final String ITEM_MODEL_OFFSET_Z_KEY = "item_model_offset_z";
+    public static final String ITEM_MODEL_ROTATION_X_KEY = "item_model_rotation_x";
+    public static final String ITEM_MODEL_ROTATION_Y_KEY = "item_model_rotation_y";
+    public static final String ITEM_MODEL_ROTATION_Z_KEY = "item_model_rotation_z";
     public static final String SHOW_BLUEPRINT_BACKGROUND_KEY = "show_blueprint_background";
     public static final int DEFAULT_COLOR = ColorUtils.rgb(242, 231, 198);
     public static final int DEFAULT_COLOR_SECONDARY = ColorUtils.rgb(185, 169, 123);
     public static final float DEFAULT_ITEM_MODEL_SCALE = 1;
     public static final float MIN_ITEM_MODEL_SCALE = 0.05F;
     public static final float MAX_ITEM_MODEL_SCALE = 16F;
+    public static final float DEFAULT_ITEM_MODEL_OFFSET = 0;
+    public static final float MIN_ITEM_MODEL_OFFSET = -8F;
+    public static final float MAX_ITEM_MODEL_OFFSET = 8F;
+    public static final float DEFAULT_ITEM_MODEL_ROTATION = 0;
+    public static final float MIN_ITEM_MODEL_ROTATION = -360F;
+    public static final float MAX_ITEM_MODEL_ROTATION = 360F;
     
     public static CompoundTag getContent(ItemStack stack) {
         return getContent(ILittleTool.getData(stack));
@@ -83,6 +95,12 @@ public class ItemLittleBlueprint extends Item implements ILittlePlacer, ILittleS
         content.remove(ITEM_MODEL_EXTRA_SCALE_KEY);
         content.remove(ITEM_MODEL_DISPLAY_SCALE_KEY);
         content.remove(SHOW_BLUEPRINT_BACKGROUND_KEY);
+        content.remove(ITEM_MODEL_OFFSET_X_KEY);
+        content.remove(ITEM_MODEL_OFFSET_Y_KEY);
+        content.remove(ITEM_MODEL_OFFSET_Z_KEY);
+        content.remove(ITEM_MODEL_ROTATION_X_KEY);
+        content.remove(ITEM_MODEL_ROTATION_Y_KEY);
+        content.remove(ITEM_MODEL_ROTATION_Z_KEY);
         content.remove(NO_ITEM_PREVIEW_SHRINK_KEY);
         ItemStack contentStack = new ItemStack(LittleTilesRegistry.ITEM_TILES.value());
         if (shrinkItemPreview) {
@@ -96,6 +114,7 @@ public class ItemLittleBlueprint extends Item implements ILittlePlacer, ILittleS
         }
         if (!shrinkItemPreview)
             content.putBoolean(NO_ITEM_PREVIEW_SHRINK_KEY, true);
+        copyItemModelTransformSettings(stackData, content);
         ILittleTool.setData(contentStack, content);
         return contentStack;
     }
@@ -156,7 +175,38 @@ public class ItemLittleBlueprint extends Item implements ILittlePlacer, ILittleS
         return !data.contains(SHOW_BLUEPRINT_BACKGROUND_KEY) || data.getBoolean(SHOW_BLUEPRINT_BACKGROUND_KEY);
     }
 
-    public static void setItemModelSettings(CompoundTag data, float scale, boolean showBackground) {
+    public static float getItemModelOffsetX(CompoundTag data) {
+        return getFloatSetting(data, ITEM_MODEL_OFFSET_X_KEY, DEFAULT_ITEM_MODEL_OFFSET, MIN_ITEM_MODEL_OFFSET, MAX_ITEM_MODEL_OFFSET);
+    }
+
+    public static float getItemModelOffsetY(CompoundTag data) {
+        return getFloatSetting(data, ITEM_MODEL_OFFSET_Y_KEY, DEFAULT_ITEM_MODEL_OFFSET, MIN_ITEM_MODEL_OFFSET, MAX_ITEM_MODEL_OFFSET);
+    }
+
+    public static float getItemModelOffsetZ(CompoundTag data) {
+        return getFloatSetting(data, ITEM_MODEL_OFFSET_Z_KEY, DEFAULT_ITEM_MODEL_OFFSET, MIN_ITEM_MODEL_OFFSET, MAX_ITEM_MODEL_OFFSET);
+    }
+
+    public static float getItemModelRotationX(CompoundTag data) {
+        return getFloatSetting(data, ITEM_MODEL_ROTATION_X_KEY, DEFAULT_ITEM_MODEL_ROTATION, MIN_ITEM_MODEL_ROTATION, MAX_ITEM_MODEL_ROTATION);
+    }
+
+    public static float getItemModelRotationY(CompoundTag data) {
+        return getFloatSetting(data, ITEM_MODEL_ROTATION_Y_KEY, DEFAULT_ITEM_MODEL_ROTATION, MIN_ITEM_MODEL_ROTATION, MAX_ITEM_MODEL_ROTATION);
+    }
+
+    public static float getItemModelRotationZ(CompoundTag data) {
+        return getFloatSetting(data, ITEM_MODEL_ROTATION_Z_KEY, DEFAULT_ITEM_MODEL_ROTATION, MIN_ITEM_MODEL_ROTATION, MAX_ITEM_MODEL_ROTATION);
+    }
+
+    private static float getFloatSetting(CompoundTag data, String key, float defaultValue, float min, float max) {
+        if (!data.contains(key))
+            return defaultValue;
+        return Mth.clamp(data.getFloat(key), min, max);
+    }
+
+    public static void setItemModelSettings(CompoundTag data, float scale, boolean showBackground, float offsetX, float offsetY, float offsetZ, float rotationX, float rotationY,
+            float rotationZ) {
         data.remove("item_model_scale_itemblock");
         scale = Mth.clamp(scale, MIN_ITEM_MODEL_SCALE, MAX_ITEM_MODEL_SCALE);
         if (scale == getAutomaticItemModelScale(getContent(data)))
@@ -168,6 +218,21 @@ public class ItemLittleBlueprint extends Item implements ILittlePlacer, ILittleS
             data.remove(SHOW_BLUEPRINT_BACKGROUND_KEY);
         else
             data.putBoolean(SHOW_BLUEPRINT_BACKGROUND_KEY, false);
+
+        setFloatSetting(data, ITEM_MODEL_OFFSET_X_KEY, offsetX, DEFAULT_ITEM_MODEL_OFFSET, MIN_ITEM_MODEL_OFFSET, MAX_ITEM_MODEL_OFFSET);
+        setFloatSetting(data, ITEM_MODEL_OFFSET_Y_KEY, offsetY, DEFAULT_ITEM_MODEL_OFFSET, MIN_ITEM_MODEL_OFFSET, MAX_ITEM_MODEL_OFFSET);
+        setFloatSetting(data, ITEM_MODEL_OFFSET_Z_KEY, offsetZ, DEFAULT_ITEM_MODEL_OFFSET, MIN_ITEM_MODEL_OFFSET, MAX_ITEM_MODEL_OFFSET);
+        setFloatSetting(data, ITEM_MODEL_ROTATION_X_KEY, rotationX, DEFAULT_ITEM_MODEL_ROTATION, MIN_ITEM_MODEL_ROTATION, MAX_ITEM_MODEL_ROTATION);
+        setFloatSetting(data, ITEM_MODEL_ROTATION_Y_KEY, rotationY, DEFAULT_ITEM_MODEL_ROTATION, MIN_ITEM_MODEL_ROTATION, MAX_ITEM_MODEL_ROTATION);
+        setFloatSetting(data, ITEM_MODEL_ROTATION_Z_KEY, rotationZ, DEFAULT_ITEM_MODEL_ROTATION, MIN_ITEM_MODEL_ROTATION, MAX_ITEM_MODEL_ROTATION);
+    }
+
+    private static void setFloatSetting(CompoundTag data, String key, float value, float defaultValue, float min, float max) {
+        value = Mth.clamp(value, min, max);
+        if (value == defaultValue)
+            data.remove(key);
+        else
+            data.putFloat(key, value);
     }
 
     public static void copyItemModelSettings(CompoundTag source, CompoundTag target) {
@@ -175,6 +240,22 @@ public class ItemLittleBlueprint extends Item implements ILittlePlacer, ILittleS
             target.putFloat(ITEM_MODEL_SCALE_KEY, getItemModelScale(source));
         if (!showBlueprintBackground(source))
             target.putBoolean(SHOW_BLUEPRINT_BACKGROUND_KEY, false);
+        copyItemModelTransformSettings(source, target);
+    }
+
+    private static void copyItemModelTransformSettings(CompoundTag source, CompoundTag target) {
+        copyFloatSetting(source, target, ITEM_MODEL_OFFSET_X_KEY, DEFAULT_ITEM_MODEL_OFFSET, MIN_ITEM_MODEL_OFFSET, MAX_ITEM_MODEL_OFFSET);
+        copyFloatSetting(source, target, ITEM_MODEL_OFFSET_Y_KEY, DEFAULT_ITEM_MODEL_OFFSET, MIN_ITEM_MODEL_OFFSET, MAX_ITEM_MODEL_OFFSET);
+        copyFloatSetting(source, target, ITEM_MODEL_OFFSET_Z_KEY, DEFAULT_ITEM_MODEL_OFFSET, MIN_ITEM_MODEL_OFFSET, MAX_ITEM_MODEL_OFFSET);
+        copyFloatSetting(source, target, ITEM_MODEL_ROTATION_X_KEY, DEFAULT_ITEM_MODEL_ROTATION, MIN_ITEM_MODEL_ROTATION, MAX_ITEM_MODEL_ROTATION);
+        copyFloatSetting(source, target, ITEM_MODEL_ROTATION_Y_KEY, DEFAULT_ITEM_MODEL_ROTATION, MIN_ITEM_MODEL_ROTATION, MAX_ITEM_MODEL_ROTATION);
+        copyFloatSetting(source, target, ITEM_MODEL_ROTATION_Z_KEY, DEFAULT_ITEM_MODEL_ROTATION, MIN_ITEM_MODEL_ROTATION, MAX_ITEM_MODEL_ROTATION);
+    }
+
+    private static void copyFloatSetting(CompoundTag source, CompoundTag target, String key, float defaultValue, float min, float max) {
+        float value = getFloatSetting(source, key, defaultValue, min, max);
+        if (value != defaultValue)
+            target.putFloat(key, value);
     }
     
     public ItemLittleBlueprint() {

@@ -3,6 +3,7 @@ package team.creative.littletiles.client.render.item;
 import java.util.List;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.math.Axis;
 
 import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.world.item.ItemStack;
@@ -31,7 +32,25 @@ public class LittleModelItemTilesBig extends LittleModelItemTiles {
 
     @Override
     public void applyCustomOpenGLHackery(PoseStack pose, ItemStack stack, ItemDisplayContext context) {
-        float displayScale = ItemLittleBlueprint.getItemModelDisplayScale(ILittleTool.getData(stack));
+        if (context == ItemDisplayContext.NONE)
+            return;
+        var data = ILittleTool.getData(stack);
+        float offsetX = ItemLittleBlueprint.getItemModelOffsetX(data);
+        float offsetY = ItemLittleBlueprint.getItemModelOffsetY(data);
+        float offsetZ = ItemLittleBlueprint.getItemModelOffsetZ(data);
+        float rotationX = ItemLittleBlueprint.getItemModelRotationX(data);
+        float rotationY = ItemLittleBlueprint.getItemModelRotationY(data);
+        float rotationZ = ItemLittleBlueprint.getItemModelRotationZ(data);
+        float displayScale = ItemLittleBlueprint.getItemModelDisplayScale(data);
+
+        if (offsetX != ItemLittleBlueprint.DEFAULT_ITEM_MODEL_OFFSET || offsetY != ItemLittleBlueprint.DEFAULT_ITEM_MODEL_OFFSET || offsetZ != ItemLittleBlueprint.DEFAULT_ITEM_MODEL_OFFSET)
+            pose.translate(offsetX, offsetY, offsetZ);
+        if (rotationX != ItemLittleBlueprint.DEFAULT_ITEM_MODEL_ROTATION)
+            pose.mulPose(Axis.XP.rotationDegrees(rotationX));
+        if (rotationY != ItemLittleBlueprint.DEFAULT_ITEM_MODEL_ROTATION)
+            pose.mulPose(Axis.YP.rotationDegrees(rotationY));
+        if (rotationZ != ItemLittleBlueprint.DEFAULT_ITEM_MODEL_ROTATION)
+            pose.mulPose(Axis.ZP.rotationDegrees(rotationZ));
         if (displayScale == ItemLittleBlueprint.DEFAULT_ITEM_MODEL_SCALE)
             return;
         pose.scale(displayScale, displayScale, displayScale);
