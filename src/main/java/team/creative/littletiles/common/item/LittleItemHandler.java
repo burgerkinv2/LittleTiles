@@ -29,6 +29,10 @@ public class LittleItemHandler {
     
     @SubscribeEvent
     public void onLeftClick(LeftClickBlock event) {
+        if (event.getItemStack().getItem() instanceof ItemMultiTiles) {
+            event.setCanceled(true);
+            return;
+        }
         if (!event.getLevel().isClientSide && event.getItemStack().getItem() instanceof ILittleTool) {
             event.setCanceled(true);
             return;
