@@ -368,8 +368,20 @@ public class LittleTilesClient {
             }
 
             @Override
+            protected boolean shouldRenderContentDirectly(ItemStack stack, ItemDisplayContext context) {
+                if (context == ItemDisplayContext.FIXED && !ItemLittleBlueprint.showBlueprintBackground(stack))
+                    return !getFakeStack(stack, context).isEmpty();
+                return super.shouldRenderContentDirectly(stack, context);
+            }
+
+            @Override
             protected boolean shouldRenderBackground(ItemStack stack, ItemDisplayContext context) {
-                return context != ItemDisplayContext.GUI || ItemLittleBlueprint.showBlueprintBackground(stack);
+                return (context != ItemDisplayContext.GUI && context != ItemDisplayContext.FIXED) || ItemLittleBlueprint.showBlueprintBackground(stack);
+            }
+
+            @Override
+            protected boolean shouldOverlayContentQuads(ItemStack stack, ItemDisplayContext context) {
+                return context == ItemDisplayContext.FIXED && ItemLittleBlueprint.showBlueprintBackground(stack);
             }
 
             @Override
