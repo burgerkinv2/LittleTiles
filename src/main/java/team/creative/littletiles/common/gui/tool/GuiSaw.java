@@ -6,12 +6,15 @@ import team.creative.creativecore.common.gui.control.simple.GuiLabel;
 import team.creative.creativecore.common.gui.flow.GuiFlow;
 import team.creative.creativecore.common.util.inventory.ContainerSlotView;
 import team.creative.littletiles.LittleTilesRegistry;
+import team.creative.littletiles.client.LittleTilesClient;
+import team.creative.littletiles.common.gui.control.GuiGridConfig;
 import team.creative.littletiles.common.item.component.LittleSawMode;
+import team.creative.littletiles.common.placement.setting.PlacementPlayerSetting;
 
 public class GuiSaw extends GuiConfigureTool {
 
     public GuiSaw(ContainerSlotView view) {
-        super("saw", 160, 80, view);
+        super("saw", 160, 112, view);
         flow = GuiFlow.STACK_Y;
         spacing = 4;
     }
@@ -30,6 +33,9 @@ public class GuiSaw extends GuiConfigureTool {
         GuiComboBox<LittleSawMode> shiftModeBox = new GuiComboBox<>("shift_mode", LittleSawMode.MAP);
         shiftModeBox.select(shiftMode());
         add(shiftModeBox.setExpandableX());
+
+        add(new GuiLabel("grid_label").setTranslate("gui.grid"));
+        add(new GuiGridConfig("grid", getPlayer(), PlacementPlayerSetting.grid(getPlayer()), LittleTilesClient::grid));
     }
 
     private LittleSawMode mode() {

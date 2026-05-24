@@ -145,11 +145,6 @@ public class ItemLittleSaw extends Item implements ILittleTool, IItemTooltip {
         return new LittleTool(stack) {
 
             @Override
-            public boolean hasBuildingMode() {
-                return false;
-            }
-
-            @Override
             protected void tickInternal(PreviewRenderer renderer) {}
 
             @Override
