@@ -6,10 +6,13 @@ import java.util.UUID;
 import java.util.function.Consumer;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.tags.BlockTags;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import team.creative.creativecore.common.util.mc.ColorUtils;
+import team.creative.littletiles.api.common.block.LittleElementAppearanceRegistry;
 import team.creative.creativecore.common.util.filter.BiFilter;
 import team.creative.creativecore.common.util.math.base.Axis;
 import team.creative.littletiles.common.action.LittleActionDestroy.StructurePreview;
@@ -19,6 +22,7 @@ import team.creative.littletiles.common.action.exception.LittleActionException;
 import team.creative.littletiles.common.action.source.LittleActionSource;
 import team.creative.littletiles.common.block.entity.BETiles;
 import team.creative.littletiles.common.block.entity.BETiles.BlockEntityInteractor;
+import team.creative.littletiles.common.block.little.element.LittleElement;
 import team.creative.littletiles.common.block.little.tile.LittleTile;
 import team.creative.littletiles.common.block.little.tile.collection.LittleCollection;
 import team.creative.littletiles.common.block.little.tile.group.LittleGroupAbsolute;
@@ -30,6 +34,7 @@ import team.creative.littletiles.common.math.box.LittleBox;
 import team.creative.littletiles.common.math.box.LittleBoxAbsolute;
 import team.creative.littletiles.common.math.box.collection.LittleBoxes;
 import team.creative.littletiles.common.math.box.volume.LittleBoxReturnedVolume;
+import team.creative.littletiles.common.math.vec.LittleVec;
 import team.creative.littletiles.common.placement.PlacementPreview;
 import team.creative.littletiles.common.placement.mode.PlacementMode;
 import team.creative.littletiles.common.structure.LittleStructure;
@@ -171,6 +176,13 @@ public class LittleActionDestroyBoxes extends LittleActionBoxes {
     public void action(Level world, LittleActionSource source, BlockPos pos, BlockState state, List<LittleBox> boxes, LittleGrid grid) throws LittleActionException {
         fireBlockBreakEvent(world, pos, source);
         
+        BlockEntity existing = world.getBlockEntity(pos);
+        if (world.isClientSide && !(existing instanceof BETiles)) {
+            if (existing == null)
+                collectClientVanillaDestroyed(world, source, pos, state, boxes, grid);
+            return;
+        }
+
         BlockEntity blockEntity = loadBE(source, world, pos, null, true, 0);
         
         if (blockEntity instanceof BETiles) {
@@ -195,6 +207,26 @@ public class LittleActionDestroyBoxes extends LittleActionBoxes {
         }
     }
     
+    private void collectClientVanillaDestroyed(Level world, LittleActionSource source, BlockPos pos, BlockState state, List<LittleBox> boxes, LittleGrid grid) throws LittleActionException {
+        if (state.is(BlockTags.REPLACEABLE) || !isBlockValid(state) || !canConvertBlock(source, world, pos, state, 0))
+            return;
+
+        LittleBox fullBlock = new LittleBox(0, 0, 0, grid.count, grid.count, grid.count);
+        List<LittleBox> cutout = new ArrayList<>();
+        fullBlock.cutOut(grid, boxes, cutout, null);
+        if (cutout.isEmpty())
+            return;
+
+        if (destroyed == null)
+            destroyed = new LittleGroupAbsolute(pos);
+
+        LittleElement element = new LittleElement(state, ColorUtils.WHITE, LittleElementAppearanceRegistry.getAppearance(world, pos, state));
+        LittleVec offset = new LittleVec(grid, pos.subtract(destroyed.pos));
+        for (LittleBox box : cutout)
+            box.add(offset);
+        destroyed.group.add(grid, element, cutout);
+    }
+
     @Override
     public void cancel(ActionCancelContext context) throws LittleActionException {
         context.mark(destroyed);
