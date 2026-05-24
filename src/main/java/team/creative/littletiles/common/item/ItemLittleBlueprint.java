@@ -18,6 +18,7 @@ import net.neoforged.api.distmarker.OnlyIn;
 import team.creative.creativecore.common.util.inventory.ContainerSlotView;
 import team.creative.creativecore.common.util.mc.ColorUtils;
 import team.creative.littletiles.LittleTiles;
+import team.creative.littletiles.LittleTilesRegistry;
 import team.creative.littletiles.api.common.tool.ILittlePlacer;
 import team.creative.littletiles.api.common.tool.ILittleSelector;
 import team.creative.littletiles.api.common.tool.ILittleTool;
@@ -41,6 +42,7 @@ import team.creative.littletiles.common.packet.action.BlockPacket.BlockPacketAct
 public class ItemLittleBlueprint extends Item implements ILittlePlacer, ILittleSelector, IItemTooltip {
     
     public static final String CONTENT_KEY = "c";
+    public static final String NO_ITEM_PREVIEW_SHRINK_KEY = "lt_no_item_preview_shrink";
     public static final int DEFAULT_COLOR = ColorUtils.rgb(242, 231, 198);
     public static final int DEFAULT_COLOR_SECONDARY = ColorUtils.rgb(185, 169, 123);
     
@@ -49,6 +51,23 @@ public class ItemLittleBlueprint extends Item implements ILittlePlacer, ILittleS
         if (nbt.contains(CONTENT_KEY) && !nbt.contains(LittleGroup.BOXES_COUNT_KEY))
             return nbt.getCompound(CONTENT_KEY);
         return nbt;
+    }
+
+    public static ItemStack getContentStack(ItemStack stack) {
+        return getContentStack(stack, true);
+    }
+
+    public static ItemStack getContentStack(ItemStack stack, boolean shrinkItemPreview) {
+        CompoundTag content = getContent(stack);
+        if (!LittleGroup.shouldRenderInHand(content))
+            return ItemStack.EMPTY;
+        ItemStack contentStack = new ItemStack(LittleTilesRegistry.ITEM_TILES.value());
+        if (!shrinkItemPreview) {
+            content = content.copy();
+            content.putBoolean(NO_ITEM_PREVIEW_SHRINK_KEY, true);
+        }
+        ILittleTool.setData(contentStack, content);
+        return contentStack;
     }
     
     public ItemLittleBlueprint() {

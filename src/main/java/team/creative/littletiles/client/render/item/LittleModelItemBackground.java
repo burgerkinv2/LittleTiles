@@ -1,18 +1,28 @@
 package team.creative.littletiles.client.render.item;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Function;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.block.model.BakedQuad;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.client.resources.model.ModelResourceLocation;
+import net.minecraft.core.Direction;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
+import net.neoforged.neoforge.client.model.data.ModelData;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import team.creative.creativecore.client.render.model.CreativeBakedModel;
 import team.creative.creativecore.client.render.model.CreativeBlockModel;
 import team.creative.creativecore.client.render.model.CreativeItemModel;
@@ -29,6 +39,14 @@ public class LittleModelItemBackground extends CreativeItemModel {
     
     protected ItemStack getFakeStack(ItemStack current) {
         return top.apply(current);
+    }
+
+    protected ItemStack getFakeStack(ItemStack current, ItemDisplayContext context) {
+        return getFakeStack(current);
+    }
+
+    protected ItemStack getQuadStack(ItemStack current) {
+        return getFakeStack(current);
     }
     
     @Override
@@ -68,12 +86,21 @@ public class LittleModelItemBackground extends CreativeItemModel {
         return context.firstPerson() || context == ItemDisplayContext.THIRD_PERSON_LEFT_HAND || context == ItemDisplayContext.THIRD_PERSON_RIGHT_HAND || context == ItemDisplayContext.GROUND;
     }
 
+    protected boolean shouldServeContentQuads(ItemStack stack) {
+        return false;
+    }
+
+    protected BakedModel applyContentTransform(BakedModel model, ItemDisplayContext transformType, PoseStack poseStack, boolean applyLeftHandTransform) {
+        return model.applyTransform(transformType, poseStack, applyLeftHandTransform);
+    }
+
     @Override
     public CreativeBakedModel create(CreativeBlockModel block) {
         return new Baked(location, this);
     }
 
     private static class Baked extends CreativeBakedModel {
+        private ItemStack transformedStack = ItemStack.EMPTY;
 
         public Baked(ModelResourceLocation location, LittleModelItemBackground item) {
             super(location, item);
@@ -81,12 +108,60 @@ public class LittleModelItemBackground extends CreativeItemModel {
 
         @Override
         public BakedModel applyTransform(ItemDisplayContext transformType, PoseStack poseStack, boolean applyLeftHandTransform) {
+            transformedStack = renderedStack;
             if (renderedStack != null && ((LittleModelItemBackground) item).shouldRenderContentDirectly(renderedStack, transformType)) {
                 Minecraft mc = Minecraft.getInstance();
-                BakedModel model = mc.getItemRenderer().getModel(((LittleModelItemBackground) item).getFakeStack(renderedStack), null, null, 0);
-                return model.applyTransform(transformType, poseStack, applyLeftHandTransform);
+                BakedModel model = mc.getItemRenderer().getModel(((LittleModelItemBackground) item).getFakeStack(renderedStack, transformType), null, null, 0);
+                return ((LittleModelItemBackground) item).applyContentTransform(model, transformType, poseStack, applyLeftHandTransform);
             }
             return super.applyTransform(transformType, poseStack, applyLeftHandTransform);
+        }
+
+        @Override
+        public @NotNull List<BakedQuad> getQuads(@Nullable BlockState state, @Nullable Direction side, @NotNull RandomSource rand, @NotNull ModelData data,
+                @Nullable RenderType renderType) {
+            if (shouldServeContentQuads())
+                return getContentQuads(state, side, rand, data, renderType);
+            return super.getQuads(state, side, rand, data, renderType);
+        }
+
+        @Override
+        public List<BakedQuad> getQuads(BlockState state, Direction direction, RandomSource source) {
+            if (shouldServeContentQuads())
+                return getContentQuads(state, direction, source);
+            return super.getQuads(state, direction, source);
+        }
+
+        private boolean shouldServeContentQuads() {
+            if (renderedStack == null || renderedStack.isEmpty() || renderedStack == transformedStack)
+                return false;
+            LittleModelItemBackground background = (LittleModelItemBackground) item;
+            return background.shouldServeContentQuads(renderedStack) && !background.getQuadStack(renderedStack).isEmpty();
+        }
+
+        private List<BakedQuad> getContentQuads(@Nullable BlockState state, @Nullable Direction side, @NotNull RandomSource rand, @NotNull ModelData data,
+                @Nullable RenderType renderType) {
+            Minecraft mc = Minecraft.getInstance();
+            ItemStack content = ((LittleModelItemBackground) item).getQuadStack(renderedStack);
+            BakedModel model = mc.getItemRenderer().getModel(content, null, null, 0);
+            List<BakedQuad> quads = new ArrayList<>();
+            for (BakedModel pass : model.getRenderPasses(content, true))
+                addContentQuads(quads, pass.getQuads(state, side, rand, data, renderType));
+            return quads;
+        }
+
+        private List<BakedQuad> getContentQuads(@Nullable BlockState state, @Nullable Direction side, @NotNull RandomSource rand) {
+            Minecraft mc = Minecraft.getInstance();
+            ItemStack content = ((LittleModelItemBackground) item).getQuadStack(renderedStack);
+            BakedModel model = mc.getItemRenderer().getModel(content, null, null, 0);
+            List<BakedQuad> quads = new ArrayList<>();
+            for (BakedModel pass : model.getRenderPasses(content, true))
+                addContentQuads(quads, pass.getQuads(state, side, rand));
+            return quads;
+        }
+
+        private void addContentQuads(List<BakedQuad> target, List<BakedQuad> source) {
+            target.addAll(source);
         }
     }
     

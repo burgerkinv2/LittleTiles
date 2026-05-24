@@ -9,6 +9,7 @@ import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
+import team.creative.littletiles.LittleTiles;
 import team.creative.littletiles.common.block.little.element.LittleElement;
 import team.creative.littletiles.common.item.ItemMultiTiles;
 
@@ -23,6 +24,11 @@ public class LittleModelItemPreview extends LittleModelItemBackground {
     public void prepareRenderer(ItemDisplayContext context, PoseStack pose) {
         pose.translate(0.1, 0.1, 0.2);
         pose.scale(0.7F, 0.7F, 0.7F);
+    }
+
+    @Override
+    protected boolean isContentOnlyContext(ItemDisplayContext context) {
+        return LittleTiles.CONFIG.rendering.showToolPreviewInHand && super.isContentOnlyContext(context);
     }
     
 }

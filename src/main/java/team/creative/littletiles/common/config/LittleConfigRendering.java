@@ -42,6 +42,9 @@ public class LittleConfigRendering implements ICreativeConfig {
     
     @CreativeConfig
     public int itemLowResolutionBoxCount = 1000;
+
+    @CreativeConfig
+    public boolean showToolPreviewInHand = false;
     
     @CreativeConfig
     public int entityCacheBuildThreads = 1;

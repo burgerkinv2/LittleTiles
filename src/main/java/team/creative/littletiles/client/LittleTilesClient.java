@@ -22,12 +22,12 @@ import net.minecraft.client.renderer.item.ItemProperties;
 import net.minecraft.client.resources.model.ModelResourceLocation;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.BlockPos;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.BlockAndTintGetter;
 import net.minecraft.world.level.block.state.BlockState;
@@ -360,14 +360,30 @@ public class LittleTilesClient {
             LittleTiles.MODID, "chisel_background"), ModelResourceLocation.STANDALONE_VARIANT), stack -> LittleElement.getOrDefault(stack)));
         
         CreativeCoreClient.registerItemModel(ResourceLocation.tryBuild(LittleTiles.MODID, "blueprint"), new LittleModelItemBackground(new ModelResourceLocation(ResourceLocation
-                .tryBuild(LittleTiles.MODID, "blueprint_background"), ModelResourceLocation.STANDALONE_VARIANT), x -> {
-                    CompoundTag contentData = ItemLittleBlueprint.getContent(x);
-                    if (!LittleGroup.shouldRenderInHand(contentData))
-                        return ItemStack.EMPTY;
-                    ItemStack stack = new ItemStack(LittleTilesRegistry.ITEM_TILES.value());
-                    ILittleTool.setData(stack, contentData);
-                    return stack;
-                }));
+                .tryBuild(LittleTiles.MODID, "blueprint_background"), ModelResourceLocation.STANDALONE_VARIANT), ItemLittleBlueprint::getContentStack) {
+
+            @Override
+            protected boolean isContentOnlyContext(ItemDisplayContext context) {
+                return context == ItemDisplayContext.NONE || super.isContentOnlyContext(context);
+            }
+
+            @Override
+            protected ItemStack getFakeStack(ItemStack stack, ItemDisplayContext context) {
+                if (context == ItemDisplayContext.NONE)
+                    return ItemLittleBlueprint.getContentStack(stack, false);
+                return super.getFakeStack(stack, context);
+            }
+
+            @Override
+            protected ItemStack getQuadStack(ItemStack stack) {
+                return ItemLittleBlueprint.getContentStack(stack, false);
+            }
+
+            @Override
+            protected boolean shouldServeContentQuads(ItemStack stack) {
+                return true;
+            }
+        });
         
         CreativeCoreClient.registerItemModel(ResourceLocation.tryBuild(LittleTiles.MODID, "blockingredient"), new CreativeItemBoxModel(new ModelResourceLocation(ResourceLocation
                 .tryBuild("minecraft", "stone"), ModelResourceLocation.INVENTORY_VARIANT)) {
