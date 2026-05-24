@@ -17,29 +17,29 @@ import team.creative.littletiles.common.item.ItemMultiTiles;
 import team.creative.littletiles.common.structure.registry.premade.LittlePremadeRegistry;
 
 public class LittleTilesConfig {
-    
-    @CreativeConfig(type = ConfigSynchronization.CLIENT)
-    public LittleConfigBuilding building = new LittleConfigBuilding();
-    
-    @CreativeConfig(type = ConfigSynchronization.CLIENT)
-    public LittleConfigRendering rendering = new LittleConfigRendering();
-    
-    @CreativeConfig(requiresRestart = true)
-    public Core core = new Core();
-    
+
     @CreativeConfig
     public General general = new General();
-    
+
+    @CreativeConfig(type = ConfigSynchronization.CLIENT)
+    public LittleConfigBuilding building = new LittleConfigBuilding();
+
+    @CreativeConfig(type = ConfigSynchronization.CLIENT)
+    public LittleConfigRendering rendering = new LittleConfigRendering();
+
     @CreativeConfig
     public Permission<LittlePermissionBuild> build = new Permission<LittlePermissionBuild>(new LittlePermissionBuild()).add("survival", new LittlePermissionBuild(true)).add(
         "creative", new LittlePermissionBuild(false));
-    
+
     @CreativeConfig
     public Permission<LittlePermissionInteract> interact = new Permission<LittlePermissionInteract>(new LittlePermissionInteract());
-    
+
     @CreativeConfig
     public LittleConfigSignal signal = new LittleConfigSignal();
-    
+
+    @CreativeConfig(requiresRestart = true)
+    public Core core = new Core();
+
     public boolean isEditLimited(Player player) {
         return build.get(player).editBlockLimit.isEnabled();
     }
