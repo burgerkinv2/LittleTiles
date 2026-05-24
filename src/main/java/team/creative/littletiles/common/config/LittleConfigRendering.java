@@ -20,10 +20,10 @@ public class LittleConfigRendering implements ICreativeConfig {
     @CreativeConfig
     public boolean highlightStructureBox = true;
     
-    @CreativeConfig
+    @CreativeConfig(hideFromGUI = true)
     public boolean previewLines = false;
     
-    @CreativeConfig
+    @CreativeConfig(hideFromGUI = true)
     public double previewLineThickness = 2;
     
     public boolean darkerPreviewBoxShading = false;
@@ -91,17 +91,50 @@ public class LittleConfigRendering implements ICreativeConfig {
         public Appearance shaper = new Appearance();
 
         @CreativeConfig
-        public Appearance wrench = new Appearance();
+        public Appearance wrench = new Appearance(true, false);
 
         @CreativeConfig
-        public Appearance measure = new Appearance();
+        public Appearance measure = new Appearance(false, true);
     }
 
     public static class Appearance {
 
         @CreativeConfig
+        public boolean filled = true;
+
+        @CreativeConfig
+        public boolean lines = true;
+
+        @CreativeConfig
+        public boolean throughBlocks = true;
+
+        @CreativeConfig
+        @CreativeConfig.IntRange(slider = true, min = 0, max = 255)
+        public int filledRed = 255;
+
+        @CreativeConfig
+        @CreativeConfig.IntRange(slider = true, min = 0, max = 255)
+        public int filledGreen = 255;
+
+        @CreativeConfig
+        @CreativeConfig.IntRange(slider = true, min = 0, max = 255)
+        public int filledBlue = 255;
+
+        @CreativeConfig
         @CreativeConfig.DecimalRange(slider = true, min = 0, max = 1)
         public double filledAlpha = 0.5;
+
+        @CreativeConfig
+        @CreativeConfig.IntRange(slider = true, min = 0, max = 255)
+        public int lineRed = 0;
+
+        @CreativeConfig
+        @CreativeConfig.IntRange(slider = true, min = 0, max = 255)
+        public int lineGreen = 0;
+
+        @CreativeConfig
+        @CreativeConfig.IntRange(slider = true, min = 0, max = 255)
+        public int lineBlue = 0;
 
         @CreativeConfig
         @CreativeConfig.DecimalRange(slider = true, min = 0, max = 1)
@@ -110,6 +143,13 @@ public class LittleConfigRendering implements ICreativeConfig {
         @CreativeConfig
         @CreativeConfig.DecimalRange(slider = false, min = 0.25, max = 16)
         public double lineWidth = 2;
+
+        public Appearance() {}
+
+        public Appearance(boolean filled, boolean lines) {
+            this.filled = filled;
+            this.lines = lines;
+        }
     }
     
 }

@@ -10,7 +10,6 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import team.creative.creativecore.common.util.registry.NamedHandlerRegistry;
 import team.creative.creativecore.common.util.text.TextMapBuilder;
-import team.creative.littletiles.LittleTiles;
 import team.creative.littletiles.common.action.LittleAction;
 import team.creative.littletiles.common.action.exception.LittleActionException;
 import team.creative.littletiles.common.block.little.tile.LittleTile;
@@ -107,8 +106,6 @@ public abstract class PlacementMode {
     }
     
     public PreviewMode getPreviewMode() {
-        if (LittleTiles.CONFIG.rendering.previewLines)
-            return PreviewMode.LINES;
         return mode;
     }
     

@@ -299,8 +299,15 @@ public class LittleToolPlacer extends LittleTool {
     }
     
     public MeshData getMeshData(PreviewRenderer renderer, boolean lines) {
-        if (checkForWorker())
+        if (checkForWorker()) {
+            if (builtLines != lines) {
+                var builder = renderer.createTesselatorBuilder(lines);
+                for (RenderBox box : builtResult.group.getPlaceBoxes(LittleVec.ZERO))
+                    renderer.buildBox(PreviewRenderer.EMPTY, box, builder, 255, lines);
+                return builder.build();
+            }
             return builtResult.data;
+        }
         
         if (!checkForGroupLow())
             return null;
@@ -313,9 +320,6 @@ public class LittleToolPlacer extends LittleTool {
     
     @Override
     protected void renderInternal(PreviewRenderer renderer, PoseStack pose, Vec3 cam, boolean lines) {
-        if (this.builtLines != lines)
-            return;
-        
         var mesh = getMeshData(renderer, lines);
         if (mesh == null || placedPosition == null)
             return;

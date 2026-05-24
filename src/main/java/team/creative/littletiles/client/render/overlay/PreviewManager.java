@@ -158,11 +158,13 @@ public class PreviewManager implements LevelAwareHandler {
             Vec3 cam = MC.gameRenderer.getMainCamera().getPosition();
             PoseStack pose = new PoseStack();
             renderer.appearance(appearanceForTool());
-            RenderSystem.enableBlend();
-            tool.render(renderer, pose, cam, false);
-            RenderSystem.depthMask(true);
-            RenderSystem.disableBlend();
-            RenderSystem.defaultBlendFunc();
+            if (renderer.renderFilled()) {
+                RenderSystem.enableBlend();
+                tool.render(renderer, pose, cam, false);
+                RenderSystem.depthMask(true);
+                RenderSystem.disableBlend();
+                RenderSystem.defaultBlendFunc();
+            }
         }
     }
     
@@ -219,17 +221,22 @@ public class PreviewManager implements LevelAwareHandler {
             Runnable render = () -> {
                 if (tool != null) {
                     renderer.appearance(appearanceForTool());
-                    if (renderOnTop)
+                    if (renderOnTop && renderer.renderFilled())
                         tool.render(renderer, event.getPoseStack(), cam, false);
-                    tool.render(renderer, event.getPoseStack(), cam, true);
+                    if (renderer.renderLines())
+                        tool.render(renderer, event.getPoseStack(), cam, true);
                     tool.renderGui(renderer, LittleTilesClient.OVERLAY_RENDERER, cam);
                 }
                 if (tool == null || !tool.buildingMode()) {
                     renderer.appearance(LittleTiles.CONFIG.rendering.toolPreview.measure);
-                    BuildingModeFeatures.MEASURES.renderGlobal(renderer, event.getPoseStack(), LittleTilesClient.OVERLAY_RENDERER, cam);
+                    if (renderer.renderLines())
+                        BuildingModeFeatures.MEASURES.renderGlobal(renderer, event.getPoseStack(), LittleTilesClient.OVERLAY_RENDERER, cam);
                 }
-                if (topHighlightShape != null)
-                    PreviewRenderer.renderTopShapeLines(event.getPoseStack(), topHighlightShape, topHighlightX, topHighlightY, topHighlightZ, 0.0F, 0.0F, 0.0F, 0.4F);
+                if (topHighlightShape != null) {
+                    Appearance appearance = LittleTiles.CONFIG.rendering.toolPreview.defaultTool;
+                    PreviewRenderer.renderTopShapeLines(event.getPoseStack(), topHighlightShape, topHighlightX, topHighlightY, topHighlightZ, appearance.lineRed / 255F,
+                        appearance.lineGreen / 255F, appearance.lineBlue / 255F, (float) appearance.lineAlpha, appearance.throughBlocks, (float) appearance.lineWidth);
+                }
             };
             if (renderOnTop)
                 renderer.renderTopLevel(event.getModelViewMatrix(), render);

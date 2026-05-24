@@ -69,6 +69,11 @@ public class PreviewRenderer {
     }
 
     public static void renderTopShapeLines(PoseStack pose, VoxelShape shape, double x, double y, double z, float red, float green, float blue, float alpha) {
+        renderTopShapeLines(pose, shape, x, y, z, red, green, blue, alpha, true, 2);
+    }
+
+    public static void renderTopShapeLines(PoseStack pose, VoxelShape shape, double x, double y, double z, float red, float green, float blue, float alpha, boolean throughBlocks,
+            float lineWidth) {
         BufferBuilder bufferbuilder = Tesselator.getInstance().begin(VertexFormat.Mode.LINES, DefaultVertexFormat.POSITION_COLOR_NORMAL);
         renderShape(pose, bufferbuilder, shape, x, y, z, red, green, blue, alpha);
         MeshData mesh = bufferbuilder.build();
@@ -79,8 +84,12 @@ public class PreviewRenderer {
         RenderSystem.disableCull();
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
-        RenderSystem.disableDepthTest();
-        RenderSystem.depthMask(false);
+        RenderSystem.lineWidth(lineWidth);
+        if (throughBlocks) {
+            RenderSystem.disableDepthTest();
+            RenderSystem.depthMask(false);
+        } else
+            RenderSystem.enableDepthTest();
         RenderSystem.setShader(GameRenderer::getRendertypeLinesShader);
         drawPreviewMesh(mesh, true);
         RenderSystem.depthMask(true);
@@ -120,6 +129,46 @@ public class PreviewRenderer {
 
     public void appearance(Appearance appearance) {
         this.appearance = appearance != null ? appearance : LittleTiles.CONFIG.rendering.toolPreview.defaultTool;
+    }
+
+    public boolean renderFilled() {
+        return appearance.filled;
+    }
+
+    public boolean renderLines() {
+        return appearance.lines;
+    }
+
+    public boolean renderThroughBlocks() {
+        return appearance.throughBlocks;
+    }
+
+    public float lineRed() {
+        return appearance.lineRed / 255F;
+    }
+
+    public float lineGreen() {
+        return appearance.lineGreen / 255F;
+    }
+
+    public float lineBlue() {
+        return appearance.lineBlue / 255F;
+    }
+
+    public float lineAlpha() {
+        return (float) appearance.lineAlpha;
+    }
+
+    private int filledColor() {
+        return ColorUtils.rgb(appearance.filledRed, appearance.filledGreen, appearance.filledBlue);
+    }
+
+    private int lineColor() {
+        return ColorUtils.rgb(appearance.lineRed, appearance.lineGreen, appearance.lineBlue);
+    }
+
+    private boolean shouldRenderThroughBlocks() {
+        return topLevelOverlay && appearance.throughBlocks;
     }
 
     public static void renderWithModelView(Matrix4f modelViewMatrix, Runnable render) {
@@ -209,10 +258,10 @@ public class PreviewRenderer {
         RenderSystem.setShader(GameRenderer::getRendertypeLinesShader);
         RenderSystem.lineWidth((float) appearance.lineWidth);
         
-        RenderSystem.setShaderColor(red, green, blue, (float) appearance.lineAlpha);
+        RenderSystem.setShaderColor(1, 1, 1, 1);
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
-        if (topLevelOverlay) {
+        if (shouldRenderThroughBlocks()) {
             RenderSystem.disableDepthTest();
             RenderSystem.depthMask(false);
         } else
@@ -236,7 +285,7 @@ public class PreviewRenderer {
         
         RenderSystem.setShaderTexture(0, PreviewManager.WHITE_TEXTURE);
         RenderSystem.setShader(GameRenderer::getPositionColorShader);
-        if (topLevelOverlay) {
+        if (shouldRenderThroughBlocks()) {
             RenderSystem.disableDepthTest();
             RenderSystem.depthMask(false);
         } else
@@ -261,10 +310,15 @@ public class PreviewRenderer {
     }
     
     public void buildBox(PoseStack pose, RenderBox box, BufferBuilder builder, int colorAlpha, boolean lines) {
-        if (lines)
-            box.renderLines(pose, builder, colorAlpha, box.getCenter(), 0.001);
-        else
+        int previousColor = box.color;
+        if (lines) {
+            box.color = lineColor();
+            box.renderLines(pose, builder, (int) Math.round(colorAlpha * appearance.lineAlpha), box.getCenter(), 0.001);
+        } else {
+            box.color = filledColor();
             box.renderPreview(pose, builder, (int) Math.round(colorAlpha * appearance.filledAlpha));
+        }
+        box.color = previousColor;
     }
     
     public void renderBoxes(Vec3 cam, BlockPos pos, boolean lines, MeshData data) {
@@ -352,15 +406,26 @@ public class PreviewRenderer {
     }
 
     public void renderSeethroughLines(Vec3 cam, boolean lines, BlockPos pos, MeshData data, int color) {
+        if (!appearance.throughBlocks) {
+            renderBoxes(cam, pos, lines, data, () -> {
+                RenderSystem.enableDepthTest();
+                RenderSystem.setShaderColor(lineRed(), lineGreen(), lineBlue(), lineAlpha());
+                RenderSystem.lineWidth((float) appearance.lineWidth);
+            });
+            return;
+        }
         renderBoxes(cam, pos, lines, data, () -> {
             RenderSystem.enableDepthTest();
-            RenderSystem.setShaderColor(0, 0, 0, 0.4F);
-            RenderSystem.lineWidth(4);
+            RenderSystem.setShaderColor(0, 0, 0, lineAlpha());
+            RenderSystem.lineWidth((float) appearance.lineWidth + 2);
         });
         renderBoxes(cam, pos, lines, data, () -> {
             RenderSystem.disableDepthTest();
-            RenderSystem.setShaderColor(ColorUtils.redF(color), ColorUtils.greenF(color), ColorUtils.blueF(color), 0.4F);
-            RenderSystem.lineWidth(2);
+            if (color == -1)
+                RenderSystem.setShaderColor(lineRed(), lineGreen(), lineBlue(), lineAlpha());
+            else
+                RenderSystem.setShaderColor(ColorUtils.redF(color), ColorUtils.greenF(color), ColorUtils.blueF(color), lineAlpha());
+            RenderSystem.lineWidth((float) appearance.lineWidth);
         });
         
         RenderSystem.enableDepthTest();
@@ -378,7 +443,7 @@ public class PreviewRenderer {
         RenderSystem.disableCull();
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
-        if (topLevelOverlay) {
+        if (shouldRenderThroughBlocks()) {
             RenderSystem.disableDepthTest();
             RenderSystem.depthMask(false);
         } else
@@ -389,7 +454,7 @@ public class PreviewRenderer {
         RenderSystem.setShader(GameRenderer::getRendertypeLinesShader);
         
         RenderSystem.lineWidth(4.0F);
-        box.renderLines(pose, bufferbuilder, 0, 0, 0, 1F);
+        box.renderLines(pose, bufferbuilder, lineRed(), lineGreen(), lineBlue(), lineAlpha());
         
         drawPreviewMesh(bufferbuilder.buildOrThrow(), true);
         

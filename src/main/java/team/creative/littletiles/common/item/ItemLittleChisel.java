@@ -90,7 +90,7 @@ public class ItemLittleChisel extends Item implements ILittleShaper, IItemToolti
     
     @Override
     public PreviewMode previewMode(Player player, ItemStack stack) {
-        return LittleTilesClient.ACTION_HANDLER.setting.placementMode().placeInside || LittleTiles.CONFIG.rendering.previewLines ? PreviewMode.LINES : PreviewMode.PREVIEWS;
+        return LittleTilesClient.ACTION_HANDLER.setting.placementMode().placeInside ? PreviewMode.LINES : PreviewMode.PREVIEWS;
     }
     
     @Override

@@ -258,16 +258,23 @@ public class LittleToolShaper extends LittleTool {
         if (marked)
             renderer.renderPositions(pose, cam, positions, x -> markedPosition == x);
         
-        if (builtLines != lines || !built)
+        if (!built)
             return;
         
         var result = getShapeResult();
+        BoxRenderResult temporaryResult = null;
         MeshData mesh;
         BlockPos pos;
         
         if (result != null && result.data() != null) {
-            mesh = result.data();
-            pos = result.pos();
+            if (builtLines == lines) {
+                mesh = result.data();
+                pos = result.pos();
+            } else {
+                temporaryResult = renderer.buildBoxes(PreviewRenderer.EMPTY, result.boxes(), lines);
+                mesh = temporaryResult.data();
+                pos = temporaryResult.pos();
+            }
         } else {
             var selection = builtSelection;
             var builder = renderer.createTesselatorBuilder(lines);
@@ -278,6 +285,8 @@ public class LittleToolShaper extends LittleTool {
         
         if (mesh != null)
             renderer.renderBoxes(cam, pos, lines, mesh);
+        if (temporaryResult != null)
+            temporaryResult.close();
         
         RenderSystem.setShaderColor(1, 1, 1, 1);
         RenderSystem.applyModelViewMatrix();

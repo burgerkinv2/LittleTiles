@@ -42,7 +42,6 @@ import team.creative.littletiles.common.math.vec.LittleVecAbsolute;
 import team.creative.littletiles.common.mod.sable.SableBridge;
 import team.creative.littletiles.common.packet.action.ChangedElementPacket;
 import team.creative.littletiles.common.placement.PlacementHelper;
-import team.creative.littletiles.common.placement.PreviewMode;
 
 public class LittleToolTransformer extends LittleTool {
     
@@ -143,9 +142,6 @@ public class LittleToolTransformer extends LittleTool {
     
     @Override
     protected void renderInternal(PreviewRenderer renderer, PoseStack pose, Vec3 cam, boolean lines) {
-        if ((transformer.previewMode(renderer.player(), stack) == PreviewMode.LINES) != lines)
-            return;
-        
         MeshData mesh;
         BlockPos pos;
         var builder = renderer.createTesselatorBuilder(lines);
