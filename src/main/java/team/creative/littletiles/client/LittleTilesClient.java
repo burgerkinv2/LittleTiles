@@ -368,6 +368,11 @@ public class LittleTilesClient {
             }
 
             @Override
+            protected boolean shouldRenderBackground(ItemStack stack, ItemDisplayContext context) {
+                return context != ItemDisplayContext.GUI || ItemLittleBlueprint.showBlueprintBackground(stack);
+            }
+
+            @Override
             protected ItemStack getFakeStack(ItemStack stack, ItemDisplayContext context) {
                 if (context == ItemDisplayContext.NONE)
                     return ItemLittleBlueprint.getContentStack(stack, false);

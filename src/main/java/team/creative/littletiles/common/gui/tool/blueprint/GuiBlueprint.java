@@ -168,7 +168,7 @@ public class GuiBlueprint extends GuiConfigure {
     
     private void closeWithDialog() {
         if (runTest().success()) {
-            CompoundTag nbt = LittleGroup.save(reconstructBlueprint());
+            CompoundTag nbt = saveBlueprintData();
             
             if (ItemLittleBlueprint.getContent(tool.get()).equals(nbt)) { // No need to save anything
                 super.closeThisLayer();
@@ -179,7 +179,7 @@ public class GuiBlueprint extends GuiConfigure {
                 if (b == DialogButton.CANCEL)
                     return;
                 if (b == DialogButton.YES)
-                    SAVE.send(LittleGroup.save(reconstructBlueprint()));
+                    SAVE.send(saveBlueprintData());
                 GuiBlueprint.super.closeThisLayer();
             }, DialogButton.CANCEL, DialogButton.NO, DialogButton.YES);
         } else {
@@ -291,7 +291,7 @@ public class GuiBlueprint extends GuiConfigure {
         bottom.addRight(new GuiButton("check", x -> OPEN_TEST.open(new CompoundTag()).init(this)).setTranslate("gui.blueprint.test"));
         bottom.addRight(new GuiButton("save", x -> {
             if (runTest().success())
-                SAVE.send(LittleGroup.save(reconstructBlueprint()));
+                SAVE.send(saveBlueprintData());
         }).setTranslate("gui.save"));
         
         tree.selectFirst();
@@ -386,6 +386,12 @@ public class GuiBlueprint extends GuiConfigure {
         for (GuiTreeItem child : tree.root().items())
             children.add(reconstructBlueprint((GuiTreeItemStructure) child));
         return new LittleGroup((CompoundTag) null, children);
+    }
+
+    protected CompoundTag saveBlueprintData() {
+        CompoundTag data = LittleGroup.save(reconstructBlueprint());
+        ItemLittleBlueprint.copyItemModelSettings(ILittleTool.getData(tool.get()), data);
+        return data;
     }
     
 }

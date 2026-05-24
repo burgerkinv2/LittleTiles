@@ -163,6 +163,14 @@ public class LittleGroup implements Bunch<LittleTile>, IGridBased {
     
     @OnlyIn(Dist.CLIENT)
     public static void shrinkCubesToOneBlock(List<? extends RenderBox> cubes) {
+        float scale = getItemPreviewScale(cubes, 1);
+        scaleCubesForItemPreview(cubes, scale);
+    }
+
+    @OnlyIn(Dist.CLIENT)
+    public static float getItemPreviewScale(List<? extends RenderBox> cubes, float maxSize) {
+        if (cubes.isEmpty())
+            return 1;
         float minX = Float.POSITIVE_INFINITY;
         float minY = Float.POSITIVE_INFINITY;
         float minZ = Float.POSITIVE_INFINITY;
@@ -179,14 +187,35 @@ public class LittleGroup implements Bunch<LittleTile>, IGridBased {
         }
         float scale = 1;
         float sizeX = maxX - minX;
-        if (sizeX > 1)
-            scale = Math.min(scale, 1 / sizeX);
+        if (sizeX > maxSize)
+            scale = Math.min(scale, maxSize / sizeX);
         float sizeY = maxY - minY;
-        if (sizeY > 1)
-            scale = Math.min(scale, 1 / sizeY);
+        if (sizeY > maxSize)
+            scale = Math.min(scale, maxSize / sizeY);
         float sizeZ = maxZ - minZ;
-        if (sizeZ > 1)
-            scale = Math.min(scale, 1 / sizeZ);
+        if (sizeZ > maxSize)
+            scale = Math.min(scale, maxSize / sizeZ);
+        return scale;
+    }
+
+    @OnlyIn(Dist.CLIENT)
+    public static void scaleCubesForItemPreview(List<? extends RenderBox> cubes, float scale) {
+        if (cubes.isEmpty())
+            return;
+        float minX = Float.POSITIVE_INFINITY;
+        float minY = Float.POSITIVE_INFINITY;
+        float minZ = Float.POSITIVE_INFINITY;
+        float maxX = Float.NEGATIVE_INFINITY;
+        float maxY = Float.NEGATIVE_INFINITY;
+        float maxZ = Float.NEGATIVE_INFINITY;
+        for (RenderBox box : cubes) {
+            minX = Math.min(minX, box.minX);
+            minY = Math.min(minY, box.minY);
+            minZ = Math.min(minZ, box.minZ);
+            maxX = Math.max(maxX, box.maxX);
+            maxY = Math.max(maxY, box.maxY);
+            maxZ = Math.max(maxZ, box.maxZ);
+        }
         float offsetX = (minX + maxX) * -0.5F;
         float offsetY = (minY + maxY) * -0.5F;
         float offsetZ = (minZ + maxZ) * -0.5F;

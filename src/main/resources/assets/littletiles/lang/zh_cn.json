@@ -126,6 +126,8 @@
     "gui.blueprint.storage.invisible": "隐藏的存储方块",
     "gui.blueprint.color.primary": "背景色",
     "gui.blueprint.color.secondary": "边缘色",
+    "gui.blueprint.item_model_scale": "物品模型倍率",
+    "gui.blueprint.show_background": "显示蓝图背景",
     "gui.door.play_place_sound": "播放放置音效",
     "gui.door.stay_animated.tooltip": "如果可能的话，是否将门恢复成原版方块。",
     "gui.door.rightclick.tooltip": "是否可以通过右键打开或关闭.",

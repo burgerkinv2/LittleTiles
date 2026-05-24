@@ -1,6 +1,7 @@
 package team.creative.littletiles.client.render.item;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
 
@@ -86,6 +87,10 @@ public class LittleModelItemBackground extends CreativeItemModel {
         return context.firstPerson() || context == ItemDisplayContext.THIRD_PERSON_LEFT_HAND || context == ItemDisplayContext.THIRD_PERSON_RIGHT_HAND || context == ItemDisplayContext.GROUND;
     }
 
+    protected boolean shouldRenderBackground(ItemStack stack, ItemDisplayContext context) {
+        return true;
+    }
+
     protected boolean shouldServeContentQuads(ItemStack stack) {
         return false;
     }
@@ -101,6 +106,7 @@ public class LittleModelItemBackground extends CreativeItemModel {
 
     private static class Baked extends CreativeBakedModel {
         private ItemStack transformedStack = ItemStack.EMPTY;
+        private boolean renderBackground = true;
 
         public Baked(ModelResourceLocation location, LittleModelItemBackground item) {
             super(location, item);
@@ -109,6 +115,7 @@ public class LittleModelItemBackground extends CreativeItemModel {
         @Override
         public BakedModel applyTransform(ItemDisplayContext transformType, PoseStack poseStack, boolean applyLeftHandTransform) {
             transformedStack = renderedStack;
+            renderBackground = renderedStack == null || ((LittleModelItemBackground) item).shouldRenderBackground(renderedStack, transformType);
             if (renderedStack != null && ((LittleModelItemBackground) item).shouldRenderContentDirectly(renderedStack, transformType)) {
                 Minecraft mc = Minecraft.getInstance();
                 BakedModel model = mc.getItemRenderer().getModel(((LittleModelItemBackground) item).getFakeStack(renderedStack, transformType), null, null, 0);
@@ -120,6 +127,8 @@ public class LittleModelItemBackground extends CreativeItemModel {
         @Override
         public @NotNull List<BakedQuad> getQuads(@Nullable BlockState state, @Nullable Direction side, @NotNull RandomSource rand, @NotNull ModelData data,
                 @Nullable RenderType renderType) {
+            if (!renderBackground && renderedStack == transformedStack)
+                return Collections.emptyList();
             if (shouldServeContentQuads())
                 return getContentQuads(state, side, rand, data, renderType);
             return super.getQuads(state, side, rand, data, renderType);
@@ -127,6 +136,8 @@ public class LittleModelItemBackground extends CreativeItemModel {
 
         @Override
         public List<BakedQuad> getQuads(BlockState state, Direction direction, RandomSource source) {
+            if (!renderBackground && renderedStack == transformedStack)
+                return Collections.emptyList();
             if (shouldServeContentQuads())
                 return getContentQuads(state, direction, source);
             return super.getQuads(state, direction, source);
