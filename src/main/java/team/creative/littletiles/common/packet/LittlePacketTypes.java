@@ -20,6 +20,7 @@ import team.creative.creativecore.common.util.math.base.Facing;
 import team.creative.creativecore.common.util.type.map.HashMapList;
 import team.creative.littletiles.LittleTiles;
 import team.creative.littletiles.common.action.LittleAction;
+import team.creative.littletiles.common.block.little.element.LittleElement;
 import team.creative.littletiles.common.block.little.tile.LittleTile;
 import team.creative.littletiles.common.block.little.tile.collection.LittleCollection;
 import team.creative.littletiles.common.block.little.tile.group.LittleGroup;
@@ -117,6 +118,9 @@ public class LittlePacketTypes {
                     NetworkFieldTypes.writeIntArray(box.getArray(), buffer);
                 buffer.writeUtf(content.getBlockName());
                 buffer.writeInt(content.color);
+                buffer.writeBoolean(content.hasAppearance());
+                if (content.hasAppearance())
+                    buffer.writeNbt(content.appearance());
             }
             
             @Override
@@ -125,7 +129,10 @@ public class LittlePacketTypes {
                 List<LittleBox> boxes = new ArrayList<>(size);
                 for (int i = 0; i < size; i++)
                     boxes.add(LittleBox.create(NetworkFieldTypes.readIntArray(buffer)));
-                return new LittleTile(buffer.readUtf(), buffer.readInt(), boxes);
+                String blockName = buffer.readUtf();
+                int color = buffer.readInt();
+                CompoundTag appearance = buffer.readBoolean() ? (CompoundTag) buffer.readNbt(NbtAccounter.unlimitedHeap()) : null;
+                return new LittleTile(new LittleElement(blockName, color, appearance), boxes);
             }
             
         }, LittleTile.class);

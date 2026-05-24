@@ -20,6 +20,7 @@ import team.creative.creativecore.common.util.math.base.Facing;
 import team.creative.creativecore.common.util.inventory.ContainerSlotView;
 import team.creative.creativecore.common.util.mc.ColorUtils;
 import team.creative.littletiles.LittleTilesRegistry;
+import team.creative.littletiles.api.common.block.LittleElementAppearanceRegistry;
 import team.creative.littletiles.api.common.tool.ILittleTool;
 import team.creative.littletiles.client.LittleTilesClient;
 import team.creative.littletiles.client.render.overlay.PreviewRenderer;
@@ -95,7 +96,7 @@ public class ItemLittleSaw extends Item implements ILittleTool, IItemTooltip {
 
         if (extend)
             LittleTilesClient.ACTION_HANDLER.execute(new LittleActionPlace(PlaceAction.ABSOLUTE, PlacementPreview.absolute(level, PlacementMode.FILL, new LittleGroupAbsolute(boxes,
-                new LittleElement(state, ColorUtils.WHITE)))));
+                new LittleElement(state, ColorUtils.WHITE, LittleElementAppearanceRegistry.getAppearance(level, pos, state))))));
         else
             LittleTilesClient.ACTION_HANDLER.execute(new LittleActionDestroyBoxes(level, boxes));
     }

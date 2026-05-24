@@ -9,7 +9,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.Block;
 import team.creative.creativecore.common.gui.control.collection.GuiStackSelector;
 import team.creative.creativecore.common.gui.control.parent.GuiLeftRightBox;
 import team.creative.creativecore.common.gui.control.simple.GuiButton;
@@ -131,17 +130,21 @@ public class GuiScrewdriver extends GuiConfigure {
                 GuiStackSelector replacement = get("replacement");
                 ItemStack stackReplace = replacement.getSelected();
                 if (stackReplace != null) {
-                    Block replacementBlock = Block.byItem(stackReplace.getItem());
-                    if (!LittleAction.isBlockValid(replacementBlock.defaultBlockState())) {
+                    LittleElement replacementElement;
+                    try {
+                        replacementElement = LittleElement.of(stackReplace, ColorUtils.WHITE);
+                    } catch (LittleElement.NotBlockException e) {
+                        replacementElement = null;
+                    }
+                    if (replacementElement == null || !LittleAction.isBlockValid(replacementElement.getState())) {
                         GuiDialogHandler.openDialog(getIntegratedParent(), "screwdriver_dialog", Component.translatable("dialog.screwdriver.invalid_replacement"), (x, y) -> {},
                             DialogButton.OK);
                         return null;
                     }
                     actions.add(destroyAction(level, boxes, filter));
                     LittleGroupAbsolute previews = new LittleGroupAbsolute(boxes.pos);
-                    previews.add(boxes.grid, new LittleElement(replacementBlock.defaultBlockState(), ColorUtils.WHITE), boxes);
+                    previews.add(boxes.grid, replacementElement, boxes);
 
-                    actions.add(destroyAction(level, boxes, filter));
                     actions.add(new LittleActionPlace(PlaceAction.ABSOLUTE, PlacementPreview.absolute(level, PlacementMode.FILL, previews)));
                 }
             }

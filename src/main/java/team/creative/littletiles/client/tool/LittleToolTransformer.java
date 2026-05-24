@@ -22,6 +22,7 @@ import team.creative.creativecore.common.util.mc.ColorUtils;
 import team.creative.creativecore.common.util.mc.PlayerUtils;
 import team.creative.creativecore.common.util.mc.TickUtils;
 import team.creative.littletiles.LittleTiles;
+import team.creative.littletiles.api.common.block.LittleElementAppearanceRegistry;
 import team.creative.littletiles.api.common.tool.ILittleTransformer;
 import team.creative.littletiles.client.LittleTilesClient;
 import team.creative.littletiles.client.action.LittleActionHandlerClient;
@@ -187,7 +188,8 @@ public class LittleToolTransformer extends LittleTool {
     public boolean onMouseWheelClickBlock(PreviewRenderer renderer, BlockHitResult result) {
         BlockState state = renderer.level().getBlockState(result.getBlockPos());
         if (LittleAction.isBlockValid(state)) {
-            LittleTiles.NETWORK.sendToServer(new ChangedElementPacket(new LittleElement(state, ColorUtils.WHITE)));
+            LittleTiles.NETWORK.sendToServer(new ChangedElementPacket(new LittleElement(state, ColorUtils.WHITE, LittleElementAppearanceRegistry.getAppearance(renderer.level(), result
+                    .getBlockPos(), state))));
             return true;
         } else if (state.getBlock() instanceof BlockTile) {
             LittleTileContext context = renderer.selectFocused(result);

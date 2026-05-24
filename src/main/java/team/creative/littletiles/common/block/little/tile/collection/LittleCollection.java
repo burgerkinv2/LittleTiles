@@ -25,7 +25,10 @@ import team.creative.littletiles.common.math.box.LittleBox;
 import team.creative.littletiles.common.math.face.LittleServerFace;
 
 public class LittleCollection implements Iterable<LittleTile> {
-    
+
+    private static final String TILES_KEY = "lt_tiles";
+    private static final String BOXES_KEY = "b";
+
     protected Collection<LittleTile> content = createInternalCollection();
     
     public LittleCollection() {}
@@ -199,7 +202,11 @@ public class LittleCollection implements Iterable<LittleTile> {
     
     public static void load(LittleCollection collection, CompoundTag nbt) {
         collection.clear();
-        
+        if (nbt.contains(TILES_KEY, Tag.TAG_LIST)) {
+            loadTiles(collection, nbt.getList(TILES_KEY, Tag.TAG_COMPOUND), false);
+            return;
+        }
+
         for (String name : nbt.getAllKeys()) {
             ListTag boxes = nbt.getList(name, Tag.TAG_INT_ARRAY);
             BlockState state = LittleBlockRegistry.loadState(name);
@@ -228,7 +235,11 @@ public class LittleCollection implements Iterable<LittleTile> {
     
     public static void loadExtended(LittleCollection collection, CompoundTag nbt) {
         collection.clear();
-        
+        if (nbt.contains(TILES_KEY, Tag.TAG_LIST)) {
+            loadTiles(collection, nbt.getList(TILES_KEY, Tag.TAG_COMPOUND), true);
+            return;
+        }
+
         for (String name : nbt.getAllKeys()) {
             ListTag boxes = nbt.getList(name, Tag.TAG_INT_ARRAY);
             BlockState state = LittleBlockRegistry.loadState(name);
@@ -256,6 +267,9 @@ public class LittleCollection implements Iterable<LittleTile> {
     }
     
     public static CompoundTag save(LittleCollection collection) {
+        if (hasAppearance(collection))
+            return saveTiles(collection, false, null);
+
         HashMapList<String, LittleTile> sorted = new HashMapList<>();
         
         for (LittleTile tile : collection)
@@ -275,6 +289,9 @@ public class LittleCollection implements Iterable<LittleTile> {
     }
     
     public static CompoundTag saveExtended(IParentCollection collection, LittleServerFace face) {
+        if (hasAppearance(collection))
+            return saveTiles(collection, true, face);
+
         HashMapList<String, LittleTile> sorted = new HashMapList<>();
         
         for (LittleTile tile : collection)
@@ -293,6 +310,40 @@ public class LittleCollection implements Iterable<LittleTile> {
         return nbt;
     }
     
+    private static boolean hasAppearance(Iterable<LittleTile> collection) {
+        for (LittleTile tile : collection)
+            if (tile.hasAppearance())
+                return true;
+        return false;
+    }
+
+    private static void loadTiles(LittleCollection collection, ListTag list, boolean extended) {
+        for (int i = 0; i < list.size(); i++) {
+            CompoundTag tileTag = list.getCompound(i);
+            ListTag boxes = tileTag.getList(BOXES_KEY, Tag.TAG_INT_ARRAY);
+            List<LittleBox> tileBoxes = new ArrayList<>();
+            for (int j = 0; j < boxes.size(); j++)
+                tileBoxes.add(extended ? LittleBox.createExtended(boxes.getIntArray(j)) : LittleBox.create(boxes.getIntArray(j)));
+            if (!tileBoxes.isEmpty())
+                collection.content.add(new LittleTile(new LittleElement(tileTag), tileBoxes));
+        }
+    }
+
+    private static CompoundTag saveTiles(Iterable<LittleTile> collection, boolean extended, LittleServerFace face) {
+        CompoundTag nbt = new CompoundTag();
+        ListTag list = new ListTag();
+        for (LittleTile tile : collection) {
+            CompoundTag tileTag = tile.save(new CompoundTag());
+            ListTag boxes = new ListTag();
+            for (LittleBox box : tile)
+                boxes.add(extended ? box.getArrayTagExtended((IParentCollection) collection, tile, face) : box.getArrayTag());
+            tileTag.put(BOXES_KEY, boxes);
+            list.add(tileTag);
+        }
+        nbt.put(TILES_KEY, list);
+        return nbt;
+    }
+
     public void include(LittleGrid grid, List<LittleBox> cutter) {
         Collection<LittleTile> newContent = createInternalCollection();
         for (Iterator<LittleTile> iterator = content.iterator(); iterator.hasNext();) {

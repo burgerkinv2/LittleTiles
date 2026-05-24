@@ -224,7 +224,7 @@ public final class LittleTile extends LittleElement implements Iterable<LittleBo
     
     @Override
     public int hashCode() {
-        return block.hashCode() + color;
+        return super.hashCode();
     }
     
     @Override
@@ -488,7 +488,7 @@ public final class LittleTile extends LittleElement implements Iterable<LittleBo
         for (LittleBox box : boxes)
             if (!box.isSolid())
                 return false;
-        return block.canBeConvertedToVanilla() && ColorUtils.isDefault(color);
+        return block.canBeConvertedToVanilla() && ColorUtils.isDefault(color) && !hasAppearance();
     }
     
     // ================Collision================

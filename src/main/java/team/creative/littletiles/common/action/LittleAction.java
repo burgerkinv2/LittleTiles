@@ -49,6 +49,7 @@ import team.creative.creativecore.common.util.mc.ColorUtils;
 import team.creative.creativecore.common.util.mc.PlayerUtils;
 import team.creative.littletiles.LittleTiles;
 import team.creative.littletiles.LittleTilesRegistry;
+import team.creative.littletiles.api.common.block.LittleElementAppearanceRegistry;
 import team.creative.littletiles.api.common.ingredient.ILittleIngredientInventory;
 import team.creative.littletiles.client.level.BlockStatePredictionHandlerExtender;
 import team.creative.littletiles.client.level.ClientLevelExtender;
@@ -188,7 +189,7 @@ public abstract class LittleAction<T> extends CreativePacket {
                 if (isBlockValid(state) && canConvertBlock(source, level, pos, state, affected == null ? 0 : affected.incrementAndGet())) {
                     tiles = new LittleGroup();
                     LittleBox box = new LittleBox(0, 0, 0, tiles.getGrid().count, tiles.getGrid().count, tiles.getGrid().count);
-                    tiles.add(tiles.getGrid(), new LittleElement(state, ColorUtils.WHITE), box);
+                    tiles.add(tiles.getGrid(), new LittleElement(state, ColorUtils.WHITE, LittleElementAppearanceRegistry.getAppearance(level, pos, state)), box);
                 } else if (state.is(BlockTags.REPLACEABLE)) {
                     if (!setBlockPreventPredict(level, pos, BlockTile.getStateByAttribute(level, pos, attribute), 3))
                         return null;

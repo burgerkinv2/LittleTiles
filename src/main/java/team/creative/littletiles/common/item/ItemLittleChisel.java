@@ -18,6 +18,8 @@ import team.creative.creativecore.common.util.inventory.ContainerSlotView;
 import team.creative.creativecore.common.util.mc.ColorUtils;
 import team.creative.creativecore.common.util.mc.TooltipUtils;
 import team.creative.littletiles.LittleTiles;
+import team.creative.littletiles.api.client.gui.LittleElementAppearanceGuiRegistry.GuiPlacement;
+import team.creative.littletiles.api.common.block.LittleElementAppearanceRegistry;
 import team.creative.littletiles.api.common.tool.ILittleShaper;
 import team.creative.littletiles.client.LittleTilesClient;
 import team.creative.littletiles.client.render.overlay.PreviewRenderer;
@@ -100,7 +102,7 @@ public class ItemLittleChisel extends Item implements ILittleShaper, IItemToolti
     
     @Override
     public GuiConfigure getConfigure(Player player, ContainerSlotView view, boolean secondary) {
-        return new GuiChisel(view);
+        return new GuiChisel(view, secondary ? GuiPlacement.SECONDARY : GuiPlacement.PRIMARY);
     }
     
     @Override
@@ -118,7 +120,8 @@ public class ItemLittleChisel extends Item implements ILittleShaper, IItemToolti
             public boolean onMouseWheelClickBlock(PreviewRenderer renderer, BlockHitResult result) {
                 BlockState state = renderer.level().getBlockState(result.getBlockPos());
                 if (LittleAction.isBlockValid(state)) {
-                    LittleTiles.NETWORK.sendToServer(new ChangedElementPacket(new LittleElement(state, ColorUtils.WHITE)));
+                    LittleTiles.NETWORK.sendToServer(new ChangedElementPacket(new LittleElement(state, ColorUtils.WHITE, LittleElementAppearanceRegistry.getAppearance(renderer.level(), result
+                            .getBlockPos(), state))));
                     return true;
                 } else if (state.getBlock() instanceof BlockTile) {
                     LittleTileContext context = renderer.selectFocused(result);

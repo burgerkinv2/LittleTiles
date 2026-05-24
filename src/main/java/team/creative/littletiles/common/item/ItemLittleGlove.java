@@ -10,6 +10,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import team.creative.creativecore.common.util.inventory.ContainerSlotView;
+import team.creative.littletiles.api.client.gui.LittleElementAppearanceGuiRegistry.GuiPlacement;
 import team.creative.littletiles.api.common.tool.ILittleTransformer;
 import team.creative.littletiles.client.LittleTilesClient;
 import team.creative.littletiles.client.tool.LittleTool;
@@ -43,7 +44,7 @@ public class ItemLittleGlove extends Item implements ILittleTransformer, IItemTo
     
     @Override
     public GuiConfigure getConfigure(Player player, ContainerSlotView view, boolean secondary) {
-        return new GuiGlove(view);
+        return new GuiGlove(view, secondary ? GuiPlacement.SECONDARY : GuiPlacement.PRIMARY);
     }
     
     @Override

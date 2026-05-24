@@ -42,7 +42,7 @@ public abstract class GuiElementFilter extends GuiParent {
         if (filter instanceof BiFilterOr<IParentCollection, LittleTile> or)
             return new GuiElementFilterGroup(player, GuiElementFilterOperator.OR, or.filters());
         if (filter instanceof TileBlockFilter block)
-            return new GuiElementFilterBlock(player, block.block);
+            return new GuiElementFilterBlock(player, block.block, block.appearance);
         if (filter instanceof TileColorFilter color)
             return new GuiElementFilterColor(color.color);
         if (filter instanceof TileTagFilter tag)

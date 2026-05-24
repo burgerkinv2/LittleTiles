@@ -23,6 +23,10 @@ public class TileFilters {
     public static BiFilter<IParentCollection, LittleTile> block(Block block) {
         return new TileBlockFilter(block);
     }
+
+    public static BiFilter<IParentCollection, LittleTile> block(Block block, CompoundTag appearance) {
+        return new TileBlockFilter(block, appearance);
+    }
     
     public static BiFilter<IParentCollection, LittleTile> tag(TagKey<Block> tag) {
         return new TileTagFilter(tag);
@@ -57,31 +61,41 @@ public class TileFilters {
     }
     
     public static BiFilter<IParentCollection, LittleTile> of(LittleElement element) {
-        return and(block(element.getState().getBlock()), color(element.color));
+        return and(block(element.getState().getBlock(), element.appearance()), color(element.color));
     }
     
     public static class TileBlockFilter implements BiFilter<IParentCollection, LittleTile>, CompoundSerializer {
         
         public final Block block;
+        public final CompoundTag appearance;
         
         public TileBlockFilter(Block block) {
+            this(block, null);
+        }
+
+        public TileBlockFilter(Block block, CompoundTag appearance) {
             this.block = block;
+            this.appearance = appearance != null && !appearance.isEmpty() ? appearance.copy() : null;
         }
         
         public TileBlockFilter(CompoundTag nbt) {
             block = BuiltInRegistries.BLOCK.get(ResourceLocation.parse(nbt.getString("block")));
+            CompoundTag storedAppearance = nbt.contains("appearance") ? nbt.getCompound("appearance") : null;
+            appearance = storedAppearance != null && !storedAppearance.isEmpty() ? storedAppearance.copy() : null;
         }
         
         @Override
         public CompoundTag write() {
             CompoundTag tag = new CompoundTag();
             tag.putString("block", block.builtInRegistryHolder().key().location().toString());
+            if (appearance != null && !appearance.isEmpty())
+                tag.put("appearance", appearance.copy());
             return tag;
         }
         
         @Override
         public boolean is(IParentCollection parent, LittleTile tile) {
-            return tile.getBlock().is(block);
+            return tile.getBlock().is(block) && (appearance == null || appearance.equals(tile.appearance()));
         }
     }
     

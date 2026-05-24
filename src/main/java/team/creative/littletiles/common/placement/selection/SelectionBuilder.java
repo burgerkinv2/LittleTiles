@@ -16,6 +16,7 @@ import team.creative.creativecore.common.util.mc.ColorUtils;
 import team.creative.littletiles.common.action.LittleAction;
 import team.creative.littletiles.common.action.exception.AreaTooLarge;
 import team.creative.littletiles.common.action.exception.LittleActionException;
+import team.creative.littletiles.api.common.block.LittleElementAppearanceRegistry;
 import team.creative.littletiles.common.block.entity.BETiles;
 import team.creative.littletiles.common.block.little.element.LittleElement;
 import team.creative.littletiles.common.block.little.tile.LittleTile;
@@ -154,7 +155,8 @@ public class SelectionBuilder {
                             if (blockBox == null)
                                 continue;
                             blockBox.add((posX - minX) * previews.getGrid().count, (posY - minY) * previews.getGrid().count, (posZ - minZ) * previews.getGrid().count);
-                            previews.add(previews.getGrid(), new LittleElement(state, ColorUtils.WHITE), blockBox);
+                            previews.add(previews.getGrid(), new LittleElement(state, ColorUtils.WHITE, LittleElementAppearanceRegistry.getAppearance(level, temp.immutable(), state)),
+                                blockBox);
                         }
                     }
                 }
@@ -242,7 +244,7 @@ public class SelectionBuilder {
                     box.add(offset);
                     result.add(box);
                 }
-                previews.add(previews.getGrid(), new LittleElement(state, ColorUtils.WHITE), result);
+                previews.add(previews.getGrid(), new LittleElement(state, ColorUtils.WHITE, LittleElementAppearanceRegistry.getAppearance(level, pos, state)), result);
             }
         }
     }
