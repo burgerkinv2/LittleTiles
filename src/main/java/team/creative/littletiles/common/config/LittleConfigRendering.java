@@ -85,6 +85,9 @@ public class LittleConfigRendering implements ICreativeConfig {
         public Appearance chisel = new Appearance();
 
         @CreativeConfig
+        public Appearance glove = new Appearance();
+
+        @CreativeConfig
         public Appearance selection = new Appearance();
 
         @CreativeConfig

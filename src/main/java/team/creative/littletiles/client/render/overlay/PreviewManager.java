@@ -44,6 +44,7 @@ import team.creative.littletiles.client.tool.LittleTool;
 import team.creative.littletiles.client.tool.LittleToolMeasure;
 import team.creative.littletiles.client.tool.LittleToolPlacer;
 import team.creative.littletiles.client.tool.LittleToolSelection;
+import team.creative.littletiles.client.tool.LittleToolTransformer;
 import team.creative.littletiles.client.tool.LittleToolWrench;
 import team.creative.littletiles.client.tool.mode.BuildingModeFeature;
 import team.creative.littletiles.client.tool.mode.BuildingModeFeatures;
@@ -102,6 +103,8 @@ public class PreviewManager implements LevelAwareHandler {
         }
         if (tool.stack.getItem() instanceof ItemLittleChisel)
             return config.chisel;
+        if (tool instanceof LittleToolTransformer)
+            return config.glove;
         if (tool instanceof LittleToolSelection)
             return config.selection;
         if (tool instanceof LittleToolShaper)

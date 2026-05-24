@@ -520,6 +520,7 @@
     "config.littletiles.rendering.toolPreview.placer.name": "Placer",
     "config.littletiles.rendering.toolPreview.blueprint.name": "Blueprint",
     "config.littletiles.rendering.toolPreview.chisel.name": "Chisel",
+    "config.littletiles.rendering.toolPreview.glove.name": "Glove",
     "config.littletiles.rendering.toolPreview.selection.name": "Selection",
     "config.littletiles.rendering.toolPreview.shaper.name": "Shaper",
     "config.littletiles.rendering.toolPreview.wrench.name": "Wrench",

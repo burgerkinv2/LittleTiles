@@ -466,6 +466,7 @@
     "config.littletiles.rendering.toolPreview.placer.name": "放置器",
     "config.littletiles.rendering.toolPreview.blueprint.name": "蓝图",
     "config.littletiles.rendering.toolPreview.chisel.name": "凿子",
+    "config.littletiles.rendering.toolPreview.glove.name": "手套",
     "config.littletiles.rendering.toolPreview.selection.name": "选择",
     "config.littletiles.rendering.toolPreview.shaper.name": "塑形工具",
     "config.littletiles.rendering.toolPreview.wrench.name": "扳手",
