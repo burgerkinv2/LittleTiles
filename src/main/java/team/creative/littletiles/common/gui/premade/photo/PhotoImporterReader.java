@@ -1,7 +1,7 @@
 package team.creative.littletiles.common.gui.premade.photo;
 
 import java.awt.Graphics2D;
-import java.awt.Image;
+import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -50,10 +50,10 @@ public class PhotoImporterReader {
     }
     
     public static BufferedImage resize(BufferedImage image, int width, int height) {
-        Image tmp = image.getScaledInstance(width, height, Image.SCALE_FAST);
         BufferedImage resized = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
         Graphics2D graphics = resized.createGraphics();
-        graphics.drawImage(tmp, 0, 0, null);
+        graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+        graphics.drawImage(image, 0, 0, width, height, null);
         graphics.dispose();
         return resized;
     }
@@ -62,14 +62,41 @@ public class PhotoImporterReader {
         BufferedImage image = normalize(source);
         LittleGroup group = new LittleGroup();
         LittleElement element = new LittleElement(options.state() != null ? options.state() : LittleTilesRegistry.CLEAN.value().defaultBlockState(), ColorUtils.WHITE);
+        int width = image.getWidth();
+        int height = image.getHeight();
+        int[] pixels = image.getRGB(0, 0, width, height, null, 0, width);
         
-        for (int row = 0; row < image.getHeight(); row++) {
-            for (int col = 0; col < image.getWidth(); col++) {
-                int color = roundColor(image.getRGB(col, image.getHeight() - row - 1), options.colorAccuracy());
-                if (!ColorUtils.isInvisible(color)) {
-                    if (options.ignoreAlpha())
+        for (int row = 0; row < height; row++) {
+            int sourceRow = height - row - 1;
+            int runStart = -1;
+            int runColor = 0;
+            for (int col = 0; col <= width; col++) {
+                int color = 0;
+                boolean visible = false;
+                if (col < width) {
+                    color = roundColor(pixels[sourceRow * width + col], options.colorAccuracy());
+                    visible = !ColorUtils.isInvisible(color);
+                    if (visible && options.ignoreAlpha())
                         color = ColorUtils.setAlpha(color, 255);
-                    group.addFast(options.grid(), new LittleElement(element, color), new LittleBox(col, row, 0, col + 1, row + 1, 1));
+                }
+
+                if (visible && runStart == -1) {
+                    runStart = col;
+                    runColor = color;
+                    continue;
+                }
+
+                if (visible && color == runColor)
+                    continue;
+
+                if (runStart != -1) {
+                    group.addFast(options.grid(), new LittleElement(element, runColor), new LittleBox(runStart, row, 0, col, row + 1, 1));
+                    runStart = -1;
+                }
+
+                if (visible) {
+                    runStart = col;
+                    runColor = color;
                 }
             }
         }
