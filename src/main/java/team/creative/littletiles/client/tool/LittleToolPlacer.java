@@ -181,7 +181,7 @@ public class LittleToolPlacer extends LittleTool {
         var grid = placer.getPositionGrid(player, stack);
         var pos = marked != null ? marked.copy() : PlacementHelper.getPosition(level, blockHit, grid);
         var mode = placer.getPlacementMode(stack);
-        if (LittleTilesClient.AUTO_ROTATE_PLACER && marked == null)
+        if (LittleTilesClient.AUTO_ROTATE_PREVIEW && marked == null)
             updateAutoRotation(player);
         else
             autoRotateFacing = null;
@@ -217,9 +217,9 @@ public class LittleToolPlacer extends LittleTool {
         if (super.toolKeyPressed(renderer, key))
             return true;
         if (key == LittleTilesClient.KEY_AUTO_ROTATE) {
-            LittleTilesClient.AUTO_ROTATE_PLACER = !LittleTilesClient.AUTO_ROTATE_PLACER;
+            LittleTilesClient.AUTO_ROTATE_PREVIEW = !LittleTilesClient.AUTO_ROTATE_PREVIEW;
             autoRotateFacing = null;
-            renderer.player().displayClientMessage(Component.translatable(LittleTilesClient.AUTO_ROTATE_PLACER ? "message.littletiles.auto_rotate.on"
+            renderer.player().displayClientMessage(Component.translatable(LittleTilesClient.AUTO_ROTATE_PREVIEW ? "message.littletiles.auto_rotate.on"
                     : "message.littletiles.auto_rotate.off"), true);
             return true;
         } else if (key == LittleTilesClient.KEY_MARK) {

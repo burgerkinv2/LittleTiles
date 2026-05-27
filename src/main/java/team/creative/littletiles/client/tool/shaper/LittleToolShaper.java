@@ -15,6 +15,8 @@ import net.minecraft.Util;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
@@ -38,7 +40,9 @@ import team.creative.littletiles.common.placement.PlacementHelper;
 import team.creative.littletiles.common.placement.PreviewMode;
 import team.creative.littletiles.common.placement.shape.LittleShape;
 import team.creative.littletiles.common.placement.shape.ShapeRegistry;
+import team.creative.littletiles.common.placement.shape.config.FacingShapeConfig;
 import team.creative.littletiles.common.placement.shape.config.LittleShapeConfig;
+import team.creative.littletiles.common.placement.shape.config.MatrixShapeConfig;
 
 public class LittleToolShaper extends LittleTool {
     
@@ -59,6 +63,7 @@ public class LittleToolShaper extends LittleTool {
     private LittleShapeConfig builtShapeConfig;
     private CompletableFuture<BoxRenderResult> worker;
     private BoxRenderResult builtResult;
+    private Direction autoRotateFacing;
     
     public LittleToolShaper(ItemStack stack) {
         super(stack);
@@ -149,7 +154,11 @@ public class LittleToolShaper extends LittleTool {
         var in = shaper.getShape(stack);
         var shapeConfig = in.getConfig(player.registryAccess(), Side.CLIENT);
         var shape = in.shape;
-        
+        if (LittleTilesClient.AUTO_ROTATE_PREVIEW && !marked && supportsAutoRotate(shapeConfig))
+            updateAutoRotation(renderer, shapeConfig);
+        else
+            autoRotateFacing = null;
+
         if (blockHit != null)
             last = new ShapePosition(player, PlacementHelper.getPosition(level, blockHit, grid), blockHit, false, shaper.previewInside(player, stack));
         
@@ -196,7 +205,11 @@ public class LittleToolShaper extends LittleTool {
         
         if (!main && marked) {
             int index = renderer.select(positions);
-            if (index != -1)
+            if (index == markedPosition) {
+                marked = false;
+                scrollOriginalMarked = null;
+                removeCache();
+            } else if (index != -1)
                 markedPosition = index;
             return true;
         } else if (main) {
@@ -312,7 +325,15 @@ public class LittleToolShaper extends LittleTool {
     public boolean toolKeyPressed(PreviewRenderer renderer, KeyMapping key) {
         if (super.toolKeyPressed(renderer, key))
             return true;
-        
+
+        if (key == LittleTilesClient.KEY_AUTO_ROTATE) {
+            LittleTilesClient.AUTO_ROTATE_PREVIEW = !LittleTilesClient.AUTO_ROTATE_PREVIEW;
+            autoRotateFacing = null;
+            renderer.player().displayClientMessage(Component.translatable(LittleTilesClient.AUTO_ROTATE_PREVIEW ? "message.littletiles.auto_rotate.on"
+                    : "message.littletiles.auto_rotate.off"), true);
+            return true;
+        }
+
         if (key == LittleTilesClient.KEY_MARK) {
             toggleMark();
             return true;
@@ -326,14 +347,43 @@ public class LittleToolShaper extends LittleTool {
             }
         }
         if (built && builtShapeConfig != null && builtShapeConfig.react(renderer.player(), key)) {
-            var in = renderer.player().getMainHandItem().get(LittleTilesRegistry.SHAPE).configure(renderer.player().registryAccess(), builtShapeConfig, Side.CLIENT);
-            LittleTiles.NETWORK.sendToServer(new ShapeConfigPacket(in));
-            renderer.player().getMainHandItem().set(LittleTilesRegistry.SHAPE, in);
-            removeCache();
+            applyShapeConfig(renderer, builtShapeConfig);
             return true;
         }
-        
+
         return false;
+    }
+
+    private boolean supportsAutoRotate(LittleShapeConfig config) {
+        return config instanceof MatrixShapeConfig || config instanceof FacingShapeConfig;
+    }
+
+    private void updateAutoRotation(PreviewRenderer renderer, LittleShapeConfig config) {
+        Direction facing = renderer.player().getDirection();
+        if (autoRotateFacing == null) {
+            autoRotateFacing = facing;
+            return;
+        }
+        if (autoRotateFacing == facing)
+            return;
+
+        if (autoRotateFacing.getClockWise() == facing)
+            config.react(renderer.player(), LittleTilesClient.KEY_RIGHT);
+        else if (autoRotateFacing.getCounterClockWise() == facing)
+            config.react(renderer.player(), LittleTilesClient.KEY_LEFT);
+        else {
+            config.react(renderer.player(), LittleTilesClient.KEY_RIGHT);
+            config.react(renderer.player(), LittleTilesClient.KEY_RIGHT);
+        }
+        autoRotateFacing = facing;
+        applyShapeConfig(renderer, config);
+    }
+
+    private void applyShapeConfig(PreviewRenderer renderer, LittleShapeConfig config) {
+        var in = renderer.player().getMainHandItem().get(LittleTilesRegistry.SHAPE).configure(renderer.player().registryAccess(), config, Side.CLIENT);
+        LittleTiles.NETWORK.sendToServer(new ShapeConfigPacket(in));
+        renderer.player().getMainHandItem().set(LittleTilesRegistry.SHAPE, in);
+        removeCache();
     }
 
     @Override

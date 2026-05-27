@@ -137,7 +137,7 @@ public class LittleTilesClient {
     
     public static KeyMapping KEY_UNDO;
     public static KeyMapping KEY_REDO;
-    public static boolean AUTO_ROTATE_PLACER;
+    public static boolean AUTO_ROTATE_PREVIEW;
     
     public static BETilesRenderer BLOCK_TILES_RENDERER;
     
