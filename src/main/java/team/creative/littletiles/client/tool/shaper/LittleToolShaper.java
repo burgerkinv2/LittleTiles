@@ -93,6 +93,7 @@ public class LittleToolShaper extends LittleTool {
     
     public void clearPositions() {
         marked = false;
+        markedPosition = -1;
         scrollOriginalMarked = null;
         positions.clear();
         removeCache();
@@ -197,6 +198,16 @@ public class LittleToolShaper extends LittleTool {
             marked = true;
         }
     }
+
+    private boolean hasActiveMarkedPosition() {
+        return marked && markedPosition >= 0 && markedPosition < positions.size();
+    }
+
+    private void clearActiveMarkedPosition() {
+        markedPosition = -1;
+        scrollOriginalMarked = null;
+        removeCache();
+    }
     
     private boolean interact(PreviewRenderer renderer, ItemStack stack, BlockHitResult hit, boolean left) {
         var player = renderer.player();
@@ -205,14 +216,17 @@ public class LittleToolShaper extends LittleTool {
         
         if (!main && marked) {
             int index = renderer.select(positions);
-            if (index == markedPosition) {
-                marked = false;
-                scrollOriginalMarked = null;
-                removeCache();
-            } else if (index != -1)
+            if (index == markedPosition)
+                clearActiveMarkedPosition();
+            else if (index != -1)
                 markedPosition = index;
             return true;
         } else if (main) {
+            if (hasActiveMarkedPosition()) {
+                clearActiveMarkedPosition();
+                return true;
+            }
+
             if (LittleActionHandlerClient.isUsingSecondMode()) {
                 clearPositions();
                 return true;
@@ -248,9 +262,7 @@ public class LittleToolShaper extends LittleTool {
     public boolean onLeftClick(PreviewRenderer renderer, BlockHitResult hit) {
         if (scrollOriginalMarked != null) {
             positions.set(markedPosition, scrollOriginalMarked);
-            scrollOriginalMarked = null;
-            marked = false;
-            removeCache();
+            clearActiveMarkedPosition();
             return true;
         }
         return interact(renderer, stack, hit, true);
@@ -259,9 +271,7 @@ public class LittleToolShaper extends LittleTool {
     @Override
     public boolean onRightClick(PreviewRenderer renderer, BlockHitResult hit) {
         if (scrollOriginalMarked != null) {
-            scrollOriginalMarked = null;
-            marked = false;
-            removeCache();
+            clearActiveMarkedPosition();
             return true;
         }
         return interact(renderer, stack, hit, false);
@@ -285,7 +295,7 @@ public class LittleToolShaper extends LittleTool {
     @Override
     protected void renderInternal(PreviewRenderer renderer, PoseStack pose, Vec3 cam, boolean lines) {
         if (marked)
-            renderer.renderPositions(pose, cam, positions, x -> markedPosition == x);
+            renderer.renderPositions(pose, cam, positions, x -> markedPosition >= 0 && markedPosition == x);
         
         if (!built)
             return;
@@ -339,7 +349,7 @@ public class LittleToolShaper extends LittleTool {
             return true;
         }
         
-        if (positions.size() > 1 && marked) {
+        if (positions.size() > 1 && hasActiveMarkedPosition()) {
             var facing = LittleTilesClient.facingFromKeybind(renderer.player(), key);
             if (facing != null) {
                 positions.get(markedPosition).move(lastGrid, facing);
