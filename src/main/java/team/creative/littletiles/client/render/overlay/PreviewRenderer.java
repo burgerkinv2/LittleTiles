@@ -288,8 +288,10 @@ public class PreviewRenderer {
         if (shouldRenderThroughBlocks()) {
             RenderSystem.disableDepthTest();
             RenderSystem.depthMask(false);
-        } else
+        } else {
+            RenderSystem.enableDepthTest();
             RenderSystem.depthMask(Minecraft.useShaderTransparency());
+        }
         RenderSystem.enableCull();
     }
     
