@@ -338,6 +338,8 @@
     "key.little.config.item": "Configure Tool",
     "key.little.config_secondary.item": "Configure Tool Secondary",
     "key.little.auto_rotate": "Toggle Auto-Rotate Preview",
+    "key.little.photo_importer": "Open Photo Importer",
+    "key.little.type_writer": "Open Type Writer",
     "key.rotatedown": "Rotate down",
     "key.rotateleft": "Rotate left",
     "key.rotateright": "Rotate right",

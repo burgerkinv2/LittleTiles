@@ -284,6 +284,8 @@
     "key.little.config.item": "工具设置",
     "key.little.config_secondary.item": "配置工具 次要选项",
     "key.little.auto_rotate": "切换自动旋转预览",
+    "key.little.photo_importer": "打开图片导入器",
+    "key.little.type_writer": "打开打字机",
     "key.rotatedown": "向下旋转",
     "key.rotateleft": "向左旋转",
     "key.rotateright": "向右旋转",

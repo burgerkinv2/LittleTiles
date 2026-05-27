@@ -41,6 +41,7 @@ import net.neoforged.neoforge.client.event.ModelEvent.RegisterGeometryLoaders;
 import net.neoforged.neoforge.client.event.RegisterClientCommandsEvent;
 import net.neoforged.neoforge.client.event.RegisterColorHandlersEvent;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
+import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsEvent;
 import net.neoforged.neoforge.client.model.data.ModelData;
 import net.neoforged.neoforge.client.settings.IKeyConflictContext;
@@ -56,6 +57,7 @@ import team.creative.creativecore.common.util.math.matrix.IntMatrix3c;
 import team.creative.creativecore.common.util.math.transformation.Rotation;
 import team.creative.creativecore.common.util.mc.ColorUtils;
 import team.creative.littletiles.LittleTiles;
+import team.creative.littletiles.LittleTilesGuiRegistry;
 import team.creative.littletiles.LittleTilesRegistry;
 import team.creative.littletiles.api.common.tool.ILittleTool;
 import team.creative.littletiles.client.action.LittleActionHandlerClient;
@@ -127,6 +129,8 @@ public class LittleTilesClient {
     public static KeyMapping KEY_CONFIGURE;
     public static KeyMapping KEY_CONFIGURE_SECONDARY;
     public static KeyMapping KEY_AUTO_ROTATE;
+    public static KeyMapping KEY_PHOTO_IMPORTER;
+    public static KeyMapping KEY_TYPE_WRITER;
     public static KeyMapping KEY_UP;
     public static KeyMapping KEY_DOWN;
     public static KeyMapping KEY_RIGHT;
@@ -207,6 +211,7 @@ public class LittleTilesClient {
     public static void load(IEventBus bus) {
         bus.addListener(LittleTilesClient::setup);
         NeoForge.EVENT_BUS.addListener(LittleTilesClient::commands);
+        NeoForge.EVENT_BUS.addListener(LittleTilesClient::clientTick);
         bus.addListener(LittleTilesClient::initItemColors);
         bus.addListener(LittleTilesClient::initBlockColors);
         bus.addListener(LittleTilesClient::registerKeys);
@@ -226,6 +231,8 @@ public class LittleTilesClient {
         KEY_CONFIGURE = new LittleKeyMapping("key.little.config.item", LITTLE_KEY_CONTEXT, InputConstants.KEY_C, "key.categories.littletiles");
         KEY_CONFIGURE_SECONDARY = new LittleKeyMapping("key.little.config_secondary.item", LITTLE_KEY_CONTEXT, KeyModifier.SHIFT, InputConstants.KEY_C, "key.categories.littletiles");
         KEY_AUTO_ROTATE = new LittleKeyMapping("key.little.auto_rotate", LITTLE_KEY_CONTEXT, KeyModifier.ALT, InputConstants.KEY_R, "key.categories.littletiles");
+        KEY_PHOTO_IMPORTER = new LittleKeyMapping("key.little.photo_importer", LITTLE_KEY_CONTEXT, KeyModifier.ALT, InputConstants.KEY_P, "key.categories.littletiles");
+        KEY_TYPE_WRITER = new LittleKeyMapping("key.little.type_writer", LITTLE_KEY_CONTEXT, KeyModifier.ALT, InputConstants.KEY_T, "key.categories.littletiles");
         KEY_BUILDING_MODE = new LittleKeyMapping("key.little.building_mode", LITTLE_KEY_CONTEXT, KeyModifier.NONE, InputConstants.KEY_B, "key.categories.littletiles");
         
         KEY_UNDO = new LittleKeyMapping("key.little.undo", LITTLE_KEY_CONTEXT, KeyModifier.CONTROL, InputConstants.KEY_Z, "key.categories.littletiles");
@@ -241,12 +248,25 @@ public class LittleTilesClient {
         event.register(KEY_CONFIGURE);
         event.register(KEY_CONFIGURE_SECONDARY);
         event.register(KEY_AUTO_ROTATE);
+        event.register(KEY_PHOTO_IMPORTER);
+        event.register(KEY_TYPE_WRITER);
         event.register(KEY_BUILDING_MODE);
         
         TOOL_KEYS = new KeyMapping[] { KEY_UP, KEY_DOWN, KEY_RIGHT, KEY_LEFT, KEY_MIRROR, KEY_MARK, KEY_CONFIGURE, KEY_CONFIGURE_SECONDARY, KEY_AUTO_ROTATE, KEY_BUILDING_MODE };
         
         event.register(KEY_UNDO);
         event.register(KEY_REDO);
+    }
+
+    private static void clientTick(ClientTickEvent.Post event) {
+        if (MC.player == null || MC.screen != null)
+            return;
+
+        while (KEY_PHOTO_IMPORTER.consumeClick())
+            LittleTilesGuiRegistry.PHOTO_IMPORTER.open(MC.player);
+
+        while (KEY_TYPE_WRITER.consumeClick())
+            LittleTilesGuiRegistry.TYPE_WRITER.open(MC.player);
     }
     
     private static void setup(final FMLClientSetupEvent event) {
