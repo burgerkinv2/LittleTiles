@@ -126,6 +126,7 @@ public class LittleTilesClient {
     public static KeyMapping KEY_MARK;
     public static KeyMapping KEY_CONFIGURE;
     public static KeyMapping KEY_CONFIGURE_SECONDARY;
+    public static KeyMapping KEY_AUTO_ROTATE;
     public static KeyMapping KEY_UP;
     public static KeyMapping KEY_DOWN;
     public static KeyMapping KEY_RIGHT;
@@ -136,6 +137,7 @@ public class LittleTilesClient {
     
     public static KeyMapping KEY_UNDO;
     public static KeyMapping KEY_REDO;
+    public static boolean AUTO_ROTATE_PLACER;
     
     public static BETilesRenderer BLOCK_TILES_RENDERER;
     
@@ -223,6 +225,7 @@ public class LittleTilesClient {
         KEY_MARK = new LittleKeyMapping("key.little.mark", LITTLE_KEY_CONTEXT, InputConstants.KEY_M, "key.categories.littletiles").ignoreModifier();
         KEY_CONFIGURE = new LittleKeyMapping("key.little.config.item", LITTLE_KEY_CONTEXT, InputConstants.KEY_C, "key.categories.littletiles");
         KEY_CONFIGURE_SECONDARY = new LittleKeyMapping("key.little.config_secondary.item", LITTLE_KEY_CONTEXT, KeyModifier.SHIFT, InputConstants.KEY_C, "key.categories.littletiles");
+        KEY_AUTO_ROTATE = new LittleKeyMapping("key.little.auto_rotate", LITTLE_KEY_CONTEXT, KeyModifier.ALT, InputConstants.KEY_R, "key.categories.littletiles");
         KEY_BUILDING_MODE = new LittleKeyMapping("key.little.building_mode", LITTLE_KEY_CONTEXT, KeyModifier.NONE, InputConstants.KEY_B, "key.categories.littletiles");
         
         KEY_UNDO = new LittleKeyMapping("key.little.undo", LITTLE_KEY_CONTEXT, KeyModifier.CONTROL, InputConstants.KEY_Z, "key.categories.littletiles");
@@ -237,9 +240,10 @@ public class LittleTilesClient {
         event.register(KEY_MARK);
         event.register(KEY_CONFIGURE);
         event.register(KEY_CONFIGURE_SECONDARY);
+        event.register(KEY_AUTO_ROTATE);
         event.register(KEY_BUILDING_MODE);
         
-        TOOL_KEYS = new KeyMapping[] { KEY_UP, KEY_DOWN, KEY_RIGHT, KEY_LEFT, KEY_MIRROR, KEY_MARK, KEY_CONFIGURE, KEY_CONFIGURE_SECONDARY, KEY_BUILDING_MODE };
+        TOOL_KEYS = new KeyMapping[] { KEY_UP, KEY_DOWN, KEY_RIGHT, KEY_LEFT, KEY_MIRROR, KEY_MARK, KEY_CONFIGURE, KEY_CONFIGURE_SECONDARY, KEY_AUTO_ROTATE, KEY_BUILDING_MODE };
         
         event.register(KEY_UNDO);
         event.register(KEY_REDO);

@@ -21,6 +21,8 @@ import net.minecraft.Util;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.CustomData;
@@ -86,6 +88,7 @@ public class LittleToolPlacer extends LittleTool {
     private boolean builtEmpty;
     private LittleGroupResult builtResult;
     private CompletableFuture<LittleGroupResult> worker;
+    private Direction autoRotateFacing;
     
     public LittleToolPlacer(ItemStack stack) {
         super(stack);
@@ -178,6 +181,10 @@ public class LittleToolPlacer extends LittleTool {
         var grid = placer.getPositionGrid(player, stack);
         var pos = marked != null ? marked.copy() : PlacementHelper.getPosition(level, blockHit, grid);
         var mode = placer.getPlacementMode(stack);
+        if (LittleTilesClient.AUTO_ROTATE_PLACER && marked == null)
+            updateAutoRotation(player);
+        else
+            autoRotateFacing = null;
         var matrix = placer.getMatrix(stack);
         var hasTiles = placer.hasTiles(stack);
         var hash = Optional.ofNullable(stack.get(LittleTilesRegistry.DATA)).map(CustomData::hashCode).orElse(0);
@@ -209,7 +216,13 @@ public class LittleToolPlacer extends LittleTool {
     public boolean toolKeyPressed(PreviewRenderer renderer, KeyMapping key) {
         if (super.toolKeyPressed(renderer, key))
             return true;
-        if (key == LittleTilesClient.KEY_MARK) {
+        if (key == LittleTilesClient.KEY_AUTO_ROTATE) {
+            LittleTilesClient.AUTO_ROTATE_PLACER = !LittleTilesClient.AUTO_ROTATE_PLACER;
+            autoRotateFacing = null;
+            renderer.player().displayClientMessage(Component.translatable(LittleTilesClient.AUTO_ROTATE_PLACER ? "message.littletiles.auto_rotate.on"
+                    : "message.littletiles.auto_rotate.off"), true);
+            return true;
+        } else if (key == LittleTilesClient.KEY_MARK) {
             scrollOriginalMarked = null;
             if (marked == null) {
                 markedFixed = LittleActionHandlerClient.isUsingSecondMode();
@@ -283,6 +296,26 @@ public class LittleToolPlacer extends LittleTool {
         removeCache();
     }
     
+    private void updateAutoRotation(Player player) {
+        Direction facing = player.getDirection();
+        if (autoRotateFacing == null) {
+            autoRotateFacing = facing;
+            return;
+        }
+        if (autoRotateFacing == facing)
+            return;
+
+        if (autoRotateFacing.getClockWise() == facing)
+            processTransform(player, LittleTilesClient.KEY_RIGHT, stack);
+        else if (autoRotateFacing.getCounterClockWise() == facing)
+            processTransform(player, LittleTilesClient.KEY_LEFT, stack);
+        else {
+            processTransform(player, LittleTilesClient.KEY_RIGHT, stack);
+            processTransform(player, LittleTilesClient.KEY_RIGHT, stack);
+        }
+        autoRotateFacing = facing;
+    }
+
     public boolean checkForWorker() {
         if (worker != null) {
             try {
