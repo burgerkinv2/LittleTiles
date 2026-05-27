@@ -18,6 +18,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import team.creative.creativecore.common.util.math.box.BoxCorner;
+import team.creative.creativecore.common.util.math.base.Facing;
 import team.creative.creativecore.common.util.mc.ColorUtils;
 import team.creative.creativecore.common.util.mc.PlayerUtils;
 import team.creative.creativecore.common.util.mc.TickUtils;
@@ -52,6 +53,7 @@ public class LittleToolTransformer extends LittleTool {
     private LittleBoxAbsolute box = null;
     private LittleVecAbsolute[] corners = new LittleVecAbsolute[BoxCorner.values().length];
     private int marked = -1;
+    private LittleVecAbsolute scrollOriginalCorner;
     
     private ILittleTransformer transformer;
     
@@ -202,6 +204,12 @@ public class LittleToolTransformer extends LittleTool {
     
     @Override
     public boolean onRightClick(PreviewRenderer renderer, @Nullable BlockHitResult result) {
+        if (scrollOriginalCorner != null) {
+            scrollOriginalCorner = null;
+            marked = -1;
+            return true;
+        }
+
         if (LittleActionHandlerClient.isUsingSecondMode()) {
             first = null;
             box = null;
@@ -247,6 +255,14 @@ public class LittleToolTransformer extends LittleTool {
     
     @Override
     public boolean onLeftClick(PreviewRenderer renderer, BlockHitResult hit) {
+        if (scrollOriginalCorner != null) {
+            corners[marked] = scrollOriginalCorner;
+            scrollOriginalCorner = null;
+            marked = -1;
+            updateBox();
+            return true;
+        }
+
         if (box != null) {
             int index = -1;
             double distance = Double.MAX_VALUE;
@@ -271,7 +287,30 @@ public class LittleToolTransformer extends LittleTool {
         }
         return false;
     }
-    
+
+    @Override
+    public boolean mouseScrolled(PreviewRenderer renderer, net.neoforged.neoforge.client.event.InputEvent.MouseScrollingEvent event) {
+        if (box == null || marked <= -1)
+            return false;
+
+        int amount = (int) Math.signum(event.getScrollDeltaY());
+        if (amount == 0)
+            return false;
+
+        if (scrollOriginalCorner == null)
+            scrollOriginalCorner = corners[marked].copy();
+
+        LittleGrid grid = transformer.getPositionGrid(renderer.player(), stack);
+        Facing facing = LittleTilesClient.facingFromView(renderer.player());
+        LittleVec vec = new LittleVec(amount > 0 ? facing : facing.opposite());
+        vec.scale(Screen.hasControlDown() ? grid.count : 1);
+        corners[marked].add(new LittleVecAbsolute(BlockPos.ZERO, grid, vec));
+        if (corners[marked].getGrid().count < grid.count)
+            corners[marked].convertTo(grid);
+        updateBox();
+        return true;
+    }
+
     @Override
     public boolean toolKeyPressed(PreviewRenderer renderer, KeyMapping key) {
         if (super.toolKeyPressed(renderer, key))

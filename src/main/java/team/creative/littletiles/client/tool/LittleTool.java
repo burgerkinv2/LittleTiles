@@ -122,7 +122,11 @@ public abstract class LittleTool {
     }
     
     public void mouseInput(InputEvent.MouseButton.Pre event) {}
-    
+
+    public boolean mouseScrolled(PreviewRenderer renderer, InputEvent.MouseScrollingEvent event) {
+        return false;
+    }
+
     public boolean onRightClick(PreviewRenderer renderer, BlockHitResult result) {
         return true;
     }

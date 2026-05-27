@@ -50,6 +50,7 @@ public class LittleToolShaper extends LittleTool {
     
     private boolean marked;
     private int markedPosition;
+    private ShapePosition scrollOriginalMarked;
     
     private boolean built = false;
     private boolean builtLines;
@@ -87,6 +88,7 @@ public class LittleToolShaper extends LittleTool {
     
     public void clearPositions() {
         marked = false;
+        scrollOriginalMarked = null;
         positions.clear();
         removeCache();
     }
@@ -174,6 +176,7 @@ public class LittleToolShaper extends LittleTool {
     }
     
     public void toggleMark() {
+        scrollOriginalMarked = null;
         if (marked) {
             while (builtShape.maxAllowed() != -1 && positions.size() >= builtShape.maxAllowed())
                 positions.remove(positions.size() - 1);
@@ -230,11 +233,24 @@ public class LittleToolShaper extends LittleTool {
     
     @Override
     public boolean onLeftClick(PreviewRenderer renderer, BlockHitResult hit) {
+        if (scrollOriginalMarked != null) {
+            positions.set(markedPosition, scrollOriginalMarked);
+            scrollOriginalMarked = null;
+            marked = false;
+            removeCache();
+            return true;
+        }
         return interact(renderer, stack, hit, true);
     }
-    
+
     @Override
     public boolean onRightClick(PreviewRenderer renderer, BlockHitResult hit) {
+        if (scrollOriginalMarked != null) {
+            scrollOriginalMarked = null;
+            marked = false;
+            removeCache();
+            return true;
+        }
         return interact(renderer, stack, hit, false);
     }
     
@@ -260,12 +276,12 @@ public class LittleToolShaper extends LittleTool {
         
         if (!built)
             return;
-        
+
         var result = getShapeResult();
         BoxRenderResult temporaryResult = null;
         MeshData mesh;
         BlockPos pos;
-        
+
         if (result != null && result.data() != null) {
             if (builtLines == lines) {
                 mesh = result.data();
@@ -282,12 +298,12 @@ public class LittleToolShaper extends LittleTool {
             mesh = builder.build();
             pos = selection.pos;
         }
-        
+
         if (mesh != null)
             renderer.renderBoxes(cam, pos, lines, mesh);
         if (temporaryResult != null)
             temporaryResult.close();
-        
+
         RenderSystem.setShaderColor(1, 1, 1, 1);
         RenderSystem.applyModelViewMatrix();
     }
@@ -319,7 +335,26 @@ public class LittleToolShaper extends LittleTool {
         
         return false;
     }
-    
+
+    @Override
+    public boolean mouseScrolled(PreviewRenderer renderer, net.neoforged.neoforge.client.event.InputEvent.MouseScrollingEvent event) {
+        if (!marked || markedPosition < 0 || markedPosition >= positions.size())
+            return false;
+
+        int amount = (int) Math.signum(event.getScrollDeltaY());
+        if (amount == 0)
+            return false;
+
+        if (scrollOriginalMarked == null)
+            scrollOriginalMarked = positions.get(markedPosition).copy();
+
+        LittleGrid grid = lastGrid != null ? lastGrid : shaper.getPositionGrid(renderer.player(), stack);
+        var facing = LittleTilesClient.facingFromView(renderer.player());
+        positions.get(markedPosition).move(grid, amount > 0 ? facing : facing.opposite());
+        removeCache();
+        return true;
+    }
+
     @Override
     public void remove() {
         super.remove();

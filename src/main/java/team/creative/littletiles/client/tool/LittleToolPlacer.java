@@ -65,8 +65,9 @@ public class LittleToolPlacer extends LittleTool {
     private final ILittlePlacer placer;
     
     private PlacementPosition marked = null;
-    
+
     private boolean markedFixed;
+    private PlacementPosition scrollOriginalMarked;
     
     private PlacementPosition placedPosition;
     
@@ -209,6 +210,7 @@ public class LittleToolPlacer extends LittleTool {
         if (super.toolKeyPressed(renderer, key))
             return true;
         if (key == LittleTilesClient.KEY_MARK) {
+            scrollOriginalMarked = null;
             if (marked == null) {
                 markedFixed = LittleActionHandlerClient.isUsingSecondMode();
                 PlacementPosition pos = aimedPosition.copy();
@@ -254,6 +256,24 @@ public class LittleToolPlacer extends LittleTool {
         LittleVec vec = new LittleVec(facing.opposite());
         vec.scale(Screen.hasControlDown() ? positionGrid.count : 1);
         marked.sub(new LittleVecGrid(vec, positionGrid));
+    }
+
+    @Override
+    public boolean mouseScrolled(PreviewRenderer renderer, net.neoforged.neoforge.client.event.InputEvent.MouseScrollingEvent event) {
+        if (marked == null)
+            return false;
+
+        int amount = (int) Math.signum(event.getScrollDeltaY());
+        if (amount == 0)
+            return false;
+
+        if (scrollOriginalMarked == null)
+            scrollOriginalMarked = marked.copy();
+
+        Facing facing = LittleTilesClient.facingFromView(renderer.player());
+        moveMarked(placer.getPositionGrid(renderer.player(), stack), amount > 0 ? facing : facing.opposite());
+        removeCache();
+        return true;
     }
     
     protected void processTransform(Player player, KeyMapping key, ItemStack stack) {
@@ -308,7 +328,7 @@ public class LittleToolPlacer extends LittleTool {
             }
             return builtResult.data;
         }
-        
+
         if (!checkForGroupLow())
             return null;
         
@@ -443,6 +463,9 @@ public class LittleToolPlacer extends LittleTool {
     
     @Override
     public boolean onRightClick(PreviewRenderer renderer, BlockHitResult result) {
+        if (scrollOriginalMarked != null)
+            scrollOriginalMarked = null;
+
         if (!placer.hasTiles(stack))
             return false;
         
@@ -461,6 +484,18 @@ public class LittleToolPlacer extends LittleTool {
             LittleTilesClient.ACTION_HANDLER.execute(new LittleActionPlace(PlaceAction.PLACER, preview));
             marked = null;
         }
+        removeCache();
+        return true;
+    }
+
+    @Override
+    public boolean onLeftClick(PreviewRenderer renderer, BlockHitResult result) {
+        if (scrollOriginalMarked == null)
+            return false;
+
+        marked = scrollOriginalMarked;
+        scrollOriginalMarked = null;
+        markedFixed = false;
         removeCache();
         return true;
     }

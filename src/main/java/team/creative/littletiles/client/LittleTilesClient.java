@@ -183,7 +183,11 @@ public class LittleTilesClient {
         }
         return null;
     }
-    
+
+    public static Facing facingFromView(Player player) {
+        return Facing.get(Direction.orderedByNearest(player)[0]);
+    }
+
     public static IntMatrix3c fromKeybind(Player player, KeyMapping key) {
         if (key == LittleTilesClient.KEY_UP)
             return Rotation.Z_CLOCKWISE.getMatrix();

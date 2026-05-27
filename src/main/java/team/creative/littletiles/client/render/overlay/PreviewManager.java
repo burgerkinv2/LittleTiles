@@ -19,6 +19,7 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
+import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.client.event.InputEvent;
 import net.neoforged.neoforge.client.event.InputEvent.InteractionKeyMappingTriggered;
@@ -362,7 +363,15 @@ public class PreviewManager implements LevelAwareHandler {
     protected void mouseInput(InputEvent.MouseButton.Pre event) {
         if (tool == null)
             return;
-        
+
         tool.mouseInput(event);
+    }
+
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    protected void mouseScrolled(InputEvent.MouseScrollingEvent event) {
+        if (tool == null || MC.player == null || MC.screen != null)
+            return;
+        if (tool.mouseScrolled(renderer, event))
+            event.setCanceled(true);
     }
 }
