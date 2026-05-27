@@ -83,6 +83,17 @@ public final class SableClientBridge {
         }
     }
 
+    public static Vec3 transformPointToSubLevelRenderLocal(Context context, Vec3 point, float partialTick) {
+        if (!SableBridge.isAvailable() || context == null || point == null)
+            return null;
+        try {
+            return SableClientBridgeImpl.transformPointToSubLevelRenderLocal(context, point, partialTick);
+        } catch (Throwable t) {
+            LittleTiles.LOGGER.debug("[sable] failed to transform render point: {}", t.toString());
+            return null;
+        }
+    }
+
     public static boolean applyRenderRotation(Context context, PoseStack stack, float partialTick) {
         if (!SableBridge.isAvailable() || context == null || stack == null)
             return false;
