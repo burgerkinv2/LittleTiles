@@ -76,6 +76,11 @@ final class SableClientBridgeImpl {
         return pose == null ? null : pose.transformPositionInverse(cam);
     }
 
+    static Vec3 transformPointToSubLevelRenderLocal(Context context, Vec3 point, float partialTick) {
+        Pose3dc pose = ((ClientSubLevel) context.unwrap()).renderPose(partialTick);
+        return pose == null ? null : pose.transformPositionInverse(point);
+    }
+
     static boolean applyRenderRotation(Context context, PoseStack stack, float partialTick) {
         Pose3dc pose = ((ClientSubLevel) context.unwrap()).renderPose(partialTick);
         if (pose == null)

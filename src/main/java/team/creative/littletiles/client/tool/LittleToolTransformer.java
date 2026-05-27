@@ -40,6 +40,7 @@ import team.creative.littletiles.common.math.box.LittleTransformableBox.CornerCa
 import team.creative.littletiles.common.math.vec.LittleVec;
 import team.creative.littletiles.common.math.vec.LittleVecAbsolute;
 import team.creative.littletiles.common.mod.sable.SableBridge;
+import team.creative.littletiles.common.mod.sable.SableBridge.Context;
 import team.creative.littletiles.common.packet.action.ChangedElementPacket;
 import team.creative.littletiles.common.placement.PlacementHelper;
 import team.creative.littletiles.common.placement.PreviewMode;
@@ -258,6 +259,15 @@ public class LittleToolTransformer extends LittleTool {
             double reach = PlayerUtils.getReach(player);
             Vec3 view = player.getViewVector(partialTickTime);
             Vec3 look = pos.add(view.x * reach, view.y * reach, view.z * reach);
+            Context context = SableClientBridge.findRenderContext(renderer.level(), corners[0].getPos());
+            if (context != null) {
+                Vec3 localPos = SableClientBridge.transformPointToSubLevelRenderLocal(context, pos, partialTickTime);
+                Vec3 localLook = SableClientBridge.transformPointToSubLevelRenderLocal(context, look, partialTickTime);
+                if (localPos != null && localLook != null) {
+                    pos = localPos;
+                    look = localLook;
+                }
+            }
             for (int i = 0; i < corners.length; i++) {
                 Optional<Vec3> result = corners[i].getBox().clip(pos, look);
                 if (result.isPresent()) {
