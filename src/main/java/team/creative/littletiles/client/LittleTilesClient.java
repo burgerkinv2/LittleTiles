@@ -22,6 +22,7 @@ import net.minecraft.client.renderer.item.ItemProperties;
 import net.minecraft.client.resources.model.ModelResourceLocation;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.RandomSource;
@@ -169,14 +170,17 @@ public class LittleTilesClient {
     }
     
     public static Facing facingFromKeybind(Player player, KeyMapping key) {
-        if (key == LittleTilesClient.KEY_UP)
-            return LittleActionHandlerClient.isUsingSecondMode() ? Facing.UP : Facing.EAST;
-        if (key == LittleTilesClient.KEY_DOWN)
-            return LittleActionHandlerClient.isUsingSecondMode() ? Facing.DOWN : Facing.WEST;
-        if (key == LittleTilesClient.KEY_RIGHT)
-            return Facing.SOUTH;
-        if (key == LittleTilesClient.KEY_LEFT)
-            return Facing.NORTH;
+        if (key == LittleTilesClient.KEY_UP || key == LittleTilesClient.KEY_DOWN || key == LittleTilesClient.KEY_RIGHT || key == LittleTilesClient.KEY_LEFT) {
+            Direction forward = player.getDirection();
+            if (key == LittleTilesClient.KEY_UP)
+                return LittleActionHandlerClient.isUsingSecondMode() ? Facing.UP : Facing.get(forward);
+            if (key == LittleTilesClient.KEY_DOWN)
+                return LittleActionHandlerClient.isUsingSecondMode() ? Facing.DOWN : Facing.get(forward.getOpposite());
+            if (key == LittleTilesClient.KEY_RIGHT)
+                return Facing.get(forward.getClockWise());
+            if (key == LittleTilesClient.KEY_LEFT)
+                return Facing.get(forward.getCounterClockWise());
+        }
         return null;
     }
     

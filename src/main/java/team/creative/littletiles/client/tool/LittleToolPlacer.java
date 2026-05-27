@@ -223,25 +223,25 @@ public class LittleToolPlacer extends LittleTool {
             return true;
         } else if (key == LittleTilesClient.KEY_UP) {
             if (marked != null)
-                moveMarked(lastGrid, LittleActionHandlerClient.isUsingSecondMode() ? Facing.UP : Facing.EAST);
+                moveMarked(lastGrid, LittleTilesClient.facingFromKeybind(renderer.player(), key));
             else
                 processTransform(renderer.player(), key, stack);
             return true;
         } else if (key == LittleTilesClient.KEY_DOWN) {
             if (marked != null)
-                moveMarked(lastGrid, LittleActionHandlerClient.isUsingSecondMode() ? Facing.DOWN : Facing.WEST);
+                moveMarked(lastGrid, LittleTilesClient.facingFromKeybind(renderer.player(), key));
             else
                 processTransform(renderer.player(), key, stack);
             return true;
         } else if (key == LittleTilesClient.KEY_RIGHT) {
             if (marked != null)
-                moveMarked(lastGrid, Facing.SOUTH);
+                moveMarked(lastGrid, LittleTilesClient.facingFromKeybind(renderer.player(), key));
             else
                 processTransform(renderer.player(), key, stack);
             return true;
         } else if (key == LittleTilesClient.KEY_LEFT) {
             if (marked != null)
-                moveMarked(lastGrid, Facing.NORTH);
+                moveMarked(lastGrid, LittleTilesClient.facingFromKeybind(renderer.player(), key));
             else
                 processTransform(renderer.player(), key, stack);
             return true;
