@@ -32,7 +32,7 @@ import team.creative.littletiles.common.math.measure.LittleMeasurement;
 public class BuildingModeMeasures extends BuildingModeFeature implements BuildingModeInfo {
 
     @CreativeConfig
-    public KeyConfig key = new KeyConfig(InputConstants.KEY_M, KeyModifier.NONE);
+    public KeyConfig key = new KeyConfig(InputConstants.KEY_N, KeyModifier.NONE);
 
     @CreativeConfig
     public Mode defaultMode = Mode.OFF;

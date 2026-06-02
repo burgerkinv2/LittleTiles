@@ -135,12 +135,11 @@ public class LittleToolMeasure extends LittleTool {
 
     @Override
     public boolean keyPressed(PreviewRenderer renderer, int keyCode, int scanCode, int action, int modifiers) {
-        if (action != InputConstants.PRESS)
-            return false;
+        if (action == InputConstants.RELEASE)
+            return super.keyPressed(renderer, keyCode, scanCode, action, modifiers);
 
         var facing = LittleTilesClient.facingFromKeybind(MC.player, keyCode, scanCode);
         if (facing != null && markedPosition != null) {
-
             var grid = measure.getPositionGrid(renderer.player(), stack);
             LittleVec vec = new LittleVec(facing);
             vec.scale(Screen.hasControlDown() ? grid.count : 1);

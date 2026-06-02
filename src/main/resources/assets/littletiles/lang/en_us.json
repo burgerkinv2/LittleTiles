@@ -369,6 +369,7 @@
     "key.rotateup": "Rotate up",
     "key.little.redo": "Redo",
     "key.little.undo": "Undo",
+    "key.little.building_mode": "Toggle building mode",
     "message.littletiles.auto_rotate.on": "Auto-rotate preview: on",
     "message.littletiles.auto_rotate.off": "Auto-rotate preview: off",
     "action.tile.notthere": "Tile is missing",
